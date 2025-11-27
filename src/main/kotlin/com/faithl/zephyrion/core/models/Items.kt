@@ -7,6 +7,7 @@ import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import taboolib.module.database.Table
 import taboolib.module.nms.getI18nName
+import taboolib.module.nms.getName
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import kotlin.io.encoding.Base64
@@ -210,7 +211,7 @@ data class Item(
      * 获取物品名称
      */
     fun getName(): String {
-        return itemStack.itemMeta?.displayName ?: itemStack.getI18nName()
+        return itemStack.getName()
     }
 
     /**
@@ -218,6 +219,13 @@ data class Item(
      */
     fun getLore(): List<String> {
         return itemStack.itemMeta?.lore ?: listOf()
+    }
+
+    /**
+     * 移除Minecraft颜色代码
+     */
+    private fun stripColorCodes(text: String): String {
+        return text.replace("§[0-9a-fk-or]".toRegex(), "")
     }
 }
 

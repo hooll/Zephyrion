@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap
 class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = null, var page: Int = 1) : SearchUI() {
 
     private val itemsCache = ConcurrentHashMap<Int, ItemStack?>()
+    private var searchResults = listOf<com.faithl.zephyrion.core.models.Item>()
 
     val searchItems = mutableListOf<SearchItem>()
     override val params = mutableMapOf<String, String>()
@@ -51,8 +52,10 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
             rule {
 
-                checkSlot { inventory, itemStack,slot ->
+                checkSlot { inventory, itemStack, slot ->
                     if (slot !in 0..35) return@checkSlot false
+                    if (params.isNotEmpty()) return@checkSlot false
+
                     val lockedSlots = getLockedSlots(vault, currentPage)
                     if (lockedSlots != null && slot in lockedSlots) {
                         return@checkSlot false
@@ -61,6 +64,8 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                 }
 
                 firstSlot { inventory, itemStack ->
+                    if (params.isNotEmpty()) return@firstSlot -1
+
                     val lockedSlots = getLockedSlots(vault, currentPage)
                     (0..35).firstOrNull { slot ->
                         val item = inventory.getItem(slot)
@@ -71,6 +76,8 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                 }
 
                 writeItem { inventory, itemStack, slot, clickType ->
+                    if (params.isNotEmpty()) return@writeItem
+
                     if (slot in 0..35) {
                         inventory.setItem(slot, itemStack)
                         submitAsync {
@@ -121,8 +128,9 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
     fun setElements(menu: StorableChest, inventory: Inventory) {
         if (params.isNotEmpty()) {
-            // TODO: 搜索模式
+            return
         } else {
+            // 普通浏览模式：显示锁定槽位
             if (page == vault.getMaxPage()) {
                 val ownerData = ZephyrionAPI.getUserData(vault.workspace.owner)
 
@@ -188,6 +196,14 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     }
 
     fun setPageTurnItems(menu: StorableChest) {
+        val maxPage = if (params.isNotEmpty()) {
+            // 搜索模式：根据搜索结果计算最大页数
+            if (searchResults.isEmpty()) 1 else (searchResults.size + 35) / 36
+        } else {
+            // 普通模式：使用vault的最大页数
+            vault.getMaxPage()
+        }
+
         menu.set(48) {
             if (page == 1) {
                 buildItem(XMaterial.BARRIER) {
@@ -200,7 +216,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
             }
         }
         menu.set(50) {
-            if (page == vault.getMaxPage()) {
+            if (page == maxPage) {
                 buildItem(XMaterial.BARRIER) {
                     name = opener.asLangText("vault-main-next-page-disabled")
                 }
@@ -212,12 +228,16 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
         }
         menu.onClick(48) { event ->
             if (page != 1) {
-                VaultUI(event.clicker, vault, root, page - 1).open()
+                VaultUI(event.clicker, vault, root, page - 1).apply {
+                    params.putAll(this@VaultUI.params)
+                }.open()
             }
         }
         menu.onClick(50) { event ->
-            if (page != vault.getMaxPage()) {
-                VaultUI(event.clicker, vault, root, page + 1).open()
+            if (page != maxPage) {
+                VaultUI(event.clicker, vault, root, page + 1).apply {
+                    params.putAll(this@VaultUI.params)
+                }.open()
             }
         }
     }
@@ -282,22 +302,29 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
             return
         }
 
-        if (params.isNotEmpty()) {
-            return
-        }
-
         submitAsync {
             try {
-                val items = ZephyrionAPI.getItems(vault, page, opener)
-                itemsCache.clear()
-                items.forEach {
-                    itemsCache[it.slot] = it.itemStack
-                }
+                if (params.isNotEmpty()) {
+                    // 搜索模式
+                    search()
+                    sync {
+                        val inv = build()
+                        opener.openInventory(inv)
+                        VaultOpenEvent(vault, page, inv, opener).call()
+                    }
+                } else {
+                    // 普通浏览模式
+                    val items = ZephyrionAPI.getItems(vault, page, opener)
+                    itemsCache.clear()
+                    items.forEach {
+                        itemsCache[it.slot] = it.itemStack
+                    }
 
-                sync {
-                    val inv = build()
-                    opener.openInventory(inv)
-                    VaultOpenEvent(vault, page, inv, opener).call()
+                    sync {
+                        val inv = build()
+                        opener.openInventory(inv)
+                        VaultOpenEvent(vault, page, inv, opener).call()
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -317,7 +344,28 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     }
 
     override fun search() {
-        //TODO
+        // 合并所有搜索条件的结果
+        val allResults = mutableSetOf<com.faithl.zephyrion.core.models.Item>()
+
+        params["name"]?.let { name ->
+            allResults.addAll(ZephyrionAPI.searchItemsByName(vault, name))
+        }
+
+        params["lore"]?.let { lore ->
+            allResults.addAll(ZephyrionAPI.searchItemsByLore(vault, lore))
+        }
+
+        searchResults = allResults.toList()
+
+        // 根据当前页填充itemsCache
+        itemsCache.clear()
+        val startIndex = (page - 1) * 36
+        val endIndex = minOf(startIndex + 36, searchResults.size)
+
+        for (i in startIndex until endIndex) {
+            val slot = i - startIndex
+            itemsCache[slot] = searchResults[i].itemStack
+        }
     }
 
     companion object {
