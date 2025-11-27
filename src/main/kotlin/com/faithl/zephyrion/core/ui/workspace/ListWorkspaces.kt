@@ -2,7 +2,6 @@ package com.faithl.zephyrion.core.ui.workspace
 
 import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.core.models.Workspace
-import com.faithl.zephyrion.core.models.Workspaces
 import com.faithl.zephyrion.core.ui.SearchUI
 import com.faithl.zephyrion.core.ui.search.Search
 import com.faithl.zephyrion.core.ui.search.SearchItem
@@ -101,7 +100,7 @@ class ListWorkspaces(override val opener: Player, val targetPlayer: Player? = nu
     }
 
     fun memberItem(workspace: Workspace): ItemStack {
-        if (workspace.type == Workspaces.Type.INDEPENDENT) {
+        if (workspace.type == Workspace.Companion.Type.INDEPENDENT) {
             return buildItem(XMaterial.BOOK) {
                 name = opener.asLangText("workspace-main-item-name", opener.asLangText("independent-workspace"))
                 lore += opener.asLangTextList(

@@ -4,7 +4,7 @@ import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.api.events.VaultCloseEvent
 import com.faithl.zephyrion.api.events.VaultOpenEvent
 import com.faithl.zephyrion.core.models.Vault
-import com.faithl.zephyrion.core.models.Workspaces
+import com.faithl.zephyrion.core.models.Workspace
 import com.faithl.zephyrion.core.ui.SearchUI
 import com.faithl.zephyrion.core.ui.UI
 import com.faithl.zephyrion.core.ui.search.Search
@@ -13,7 +13,6 @@ import com.faithl.zephyrion.core.ui.setRows6SplitBlock
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
-import org.jetbrains.exposed.sql.transactions.transaction
 import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
@@ -85,10 +84,8 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                             }
                         }
 
-                        transaction {
-                            if (vault.workspace.type == Workspaces.Type.INDEPENDENT)return@transaction
-                            refresh(vault, currentPage, slot, itemStack)
-                        }
+                        if (vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) return@writeItem
+                        refresh(vault, currentPage, slot, itemStack)
                     }
                 }
 
@@ -128,37 +125,34 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
             // TODO: 搜索模式
         } else {
             if (page == vault.getMaxPage()) {
-                val ownerData = transaction {
-                    ZephyrionAPI.getUserData(vault.workspace.owner)
-                }
+                val ownerData = ZephyrionAPI.getUserData(vault.workspace.owner)
+
                 getLockedSlots(vault, page)?.let { range ->
                     for (i in range) {
                         inventory.setItem(i, buildItem(XMaterial.BLUE_STAINED_GLASS_PANE) {
                             name = opener.asLangText("vault-main-unlock")
-                            transaction {
-                                // 工作空间所有者 或 插件管理员 显示管理员描述
-                                lore += if (vault.workspace.owner == opener.uniqueId.toString() ||
-                                    ZephyrionAPI.isPluginAdmin(opener)) {
-                                    // 无限配额显示特殊描述
-                                    if (ownerData.unlimited) {
-                                        opener.asLangTextList("vault-main-unlock-unlimited-desc")
-                                    } else {
-                                        opener.asLangTextList(
-                                            "vault-main-unlock-admin-desc",
-                                            ownerData.sizeUsed,
-                                            ownerData.sizeQuotas,
-                                            ownerData.sizeQuotas - ownerData.sizeUsed
-                                        )
-                                    }
+                            // 工作空间所有者 或 插件管理员 显示管理员描述
+                            lore += if (vault.workspace.owner == opener.uniqueId.toString() ||
+                                ZephyrionAPI.isPluginAdmin(opener)) {
+                                // 无限配额显示特殊描述
+                                if (ownerData.unlimited) {
+                                    opener.asLangTextList("vault-main-unlock-unlimited-desc")
                                 } else {
-                                    opener.asLangTextList("vault-main-unlock-member-desc")
+                                    opener.asLangTextList(
+                                        "vault-main-unlock-admin-desc",
+                                        ownerData.sizeUsed,
+                                        ownerData.sizeQuotas,
+                                        ownerData.sizeQuotas - ownerData.sizeUsed
+                                    )
                                 }
+                            } else {
+                                opener.asLangTextList("vault-main-unlock-member-desc")
                             }
                         })
 
                         menu.onClick(i) { event ->
                             val clicker = event.clicker
-                            if (transaction { vault.workspace.owner != clicker.uniqueId.toString() } &&
+                            if (vault.workspace.owner != clicker.uniqueId.toString() &&
                                 !ZephyrionAPI.isPluginAdmin(clicker)) {
                                 clicker.sendLang("vault-main-unlock-no-permission")
                                 return@onClick
@@ -171,12 +165,8 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                                     if (input == "0") {
                                         clicker.sendLang("vault-main-unlock-canceled")
                                     } else {
-                                        val currentOwnerData = transaction {
-                                            ZephyrionAPI.getUserData(vault.workspace.owner)
-                                        }
-                                        val result = transaction {
-                                            vault.addSize(input.toInt())
-                                        }
+                                        val currentOwnerData = ZephyrionAPI.getUserData(vault.workspace.owner)
+                                        val result = vault.addSize(input.toInt())
                                         if (result) {
                                             clicker.sendLang("vault-main-unlock-succeed", input.toInt())
                                             refreshUI(vault,page)
@@ -272,9 +262,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
         }
         menu.onClick(53) { event ->
             if (root != null) {
-                transaction {
-                    ListVaults(event.clicker, vault.workspace, (root as ListVaults).root).open()
-                }
+                ListVaults(event.clicker, vault.workspace, (root as ListVaults).root).open()
             } else {
                 event.clicker.closeInventory()
             }
@@ -292,7 +280,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     override fun open() {
         // 权限检查
         if (!ZephyrionAPI.isPluginAdmin(opener) &&
-            !transaction { vault.workspace.isMember(opener.uniqueId.toString()) }) {
+            !vault.workspace.isMember(opener.uniqueId.toString())) {
             return
         }
 
@@ -341,28 +329,24 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
         @SubscribeEvent
         fun onOpen(e:VaultOpenEvent) {
-            transaction {
-                if (e.vault.workspace.type == Workspaces.Type.INDEPENDENT) return@transaction
-                val openingInv = openViewers.find { it.vaultId == e.vault.id.value && it.page == e.page } ?: run {
-                    val newOpeningInv = OpeningInv(e.vault.id.value,e.page,mutableListOf())
-                    openViewers.add(newOpeningInv)
-                    newOpeningInv
-                }
-                openingInv.players.add(e.opener)
+            if (e.vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) return
+            val openingInv = openViewers.find { it.vaultId == e.vault.id && it.page == e.page } ?: run {
+                val newOpeningInv = OpeningInv(e.vault.id, e.page, mutableListOf())
+                openViewers.add(newOpeningInv)
+                newOpeningInv
             }
+            openingInv.players.add(e.opener)
         }
 
         @SubscribeEvent
         fun onClose(e:VaultCloseEvent) {
-            transaction {
-                if (e.vault.workspace.type == Workspaces.Type.INDEPENDENT) return@transaction
-                val openingInv = openViewers.find { it.vaultId == e.vault.id.value && it.page == e.page }!!
-                openingInv.players.remove(e.closer)
-            }
+            if (e.vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) return
+            val openingInv = openViewers.find { it.vaultId == e.vault.id && it.page == e.page }!!
+            openingInv.players.remove(e.closer)
         }
 
         private fun refresh(vault: Vault, page: Int, slot: Int, itemStack: ItemStack) {
-            val openingInv = openViewers.find { it.vaultId == vault.id.value && it.page == page } ?: return
+            val openingInv = openViewers.find { it.vaultId == vault.id && it.page == page } ?: return
             openingInv.players.forEach {
                 if (!it.isOnline) {
                     openingInv.players.remove(it)
@@ -379,7 +363,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
         //重新打开UI
         private fun refreshUI(vault: Vault, page: Int) {
-            val openingInv = openViewers.find { it.vaultId == vault.id.value && it.page == page } ?: return
+            val openingInv = openViewers.find { it.vaultId == vault.id && it.page == page } ?: return
             openingInv.players.forEach {
                 if (!it.isOnline) {
                     openingInv.players.remove(it)
