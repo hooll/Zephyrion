@@ -4,6 +4,7 @@ import com.faithl.zephyrion.Zephyrion
 import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.core.models.Vault
 import com.faithl.zephyrion.core.models.Workspace
+import com.faithl.zephyrion.core.models.WorkspaceType
 import com.faithl.zephyrion.core.ui.SearchUI
 import com.faithl.zephyrion.core.ui.UI
 import com.faithl.zephyrion.core.ui.search.Search
@@ -118,7 +119,7 @@ class ListVaults(override val opener: Player, val workspace: Workspace, val root
     fun setCreateItem(menu: PageableChest<Vault>) {
         if (workspace.owner == opener.uniqueId.toString() ||
             ZephyrionAPI.isPluginAdmin(opener) ||
-            (workspace.type == Workspace.Companion.Type.INDEPENDENT && opener.hasPermission(
+            (workspace.type == WorkspaceType.INDEPENDENT && opener.hasPermission(
                 Zephyrion.permissions.getString("create-independent-workspace")!!
             ))
         ) {

@@ -2,8 +2,10 @@ package com.faithl.zephyrion.core.services
 
 import com.faithl.zephyrion.Zephyrion
 import com.faithl.zephyrion.api.ZephyrionAPI
-import com.faithl.zephyrion.core.models.*
 import com.faithl.zephyrion.core.models.AutoPickup
+import com.faithl.zephyrion.core.models.Item
+import com.faithl.zephyrion.core.models.Vault
+import com.faithl.zephyrion.core.models.WorkspaceType
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.EntityPickupItemEvent
 import org.bukkit.event.player.PlayerJoinEvent
@@ -106,8 +108,7 @@ object AutoPickupService {
 
         val maxPage = vault.getMaxPage()
         val playerUuid = player.uniqueId.toString()
-        val isIndependent = vault.workspace.type == Workspace.Companion.Type.INDEPENDENT
-
+        val isIndependent = vault.workspace.type == WorkspaceType.INDEPENDENT
         val table = com.faithl.zephyrion.storage.DatabaseConfig.itemsTable
         val dataSource = com.faithl.zephyrion.storage.DatabaseConfig.dataSource
 

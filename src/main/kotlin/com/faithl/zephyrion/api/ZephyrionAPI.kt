@@ -70,7 +70,7 @@ object ZephyrionAPI {
     }
 
     // 创建工作空间
-    fun createWorkspace(owner: String, name: String?, type: Workspace.Companion.Type?, desc: String?): Result {
+    fun createWorkspace(owner: String, name: String?, type: WorkspaceType?, desc: String?): Result {
         val ownerData = getUserData(owner)
         if (ownerData.workspaceUsed + 1 > ownerData.workspaceQuotas) {
             return Result(false, "workspace_quota_exceeded")
@@ -274,14 +274,14 @@ object ZephyrionAPI {
     /**
      * 获取保险库的指定类型的自动拾取规则
      */
-    fun getAutoPickupsByType(vault: Vault, type: AutoPickupsTable.Type): List<AutoPickup> {
+    fun getAutoPickupsByType(vault: Vault, type: AutoPickupType): List<AutoPickup> {
         return AutoPickup.getAutoPickupsByType(vault, type)
     }
 
     /**
      * 创建自动拾取规则
      */
-    fun createAutoPickup(vault: Vault, type: AutoPickupsTable.Type, value: String): Result {
+    fun createAutoPickup(vault: Vault, type: AutoPickupType, value: String): Result {
         val result = AutoPickup.createAutoPickup(vault, type, value)
         if (result.success) {
             com.faithl.zephyrion.core.services.AutoPickupService.invalidateAllCache()

@@ -1,7 +1,6 @@
 package com.faithl.zephyrion.core.ui.vault
 
 import com.faithl.zephyrion.core.models.Setting
-import com.faithl.zephyrion.core.models.SettingsTable
 import com.faithl.zephyrion.core.models.Vault
 import com.faithl.zephyrion.core.ui.UI
 import com.faithl.zephyrion.core.ui.setLinkedMenuProperties

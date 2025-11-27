@@ -27,13 +27,10 @@ taboolib {
             Kether,
             MinecraftChat,
             Metrics,
-
         )
-        enableIsolatedClassloader  = true
     }
     version {
         taboolib = "6.2.4-abd325ee"
-        skipKotlinRelocate = true
     }
     description{
         contributors {

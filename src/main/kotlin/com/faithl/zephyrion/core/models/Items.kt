@@ -5,97 +5,12 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
-import taboolib.module.database.*
+import taboolib.module.database.Table
 import taboolib.module.nms.getI18nName
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-
-/**
- * Items表定义
- */
-object ItemsTable {
-
-    fun createTable(host: Host<*>): Table<*, *> {
-        val tableName = DatabaseConfig.getTableName("items")
-
-        return when (host) {
-            is HostSQL -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(
-                                ColumnOptionSQL.PRIMARY_KEY,
-                                ColumnOptionSQL.AUTO_INCREMENT,
-                                ColumnOptionSQL.UNSIGNED
-                            )
-                        }
-                    }
-                    add("vault_id") {
-                        type(ColumnTypeSQL.INT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("page") {
-                        type(ColumnTypeSQL.INT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("owner") {
-                        type(ColumnTypeSQL.VARCHAR, 36)
-                    }
-                    add("slot") {
-                        type(ColumnTypeSQL.INT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("item_stack") {
-                        type(ColumnTypeSQL.TEXT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                }
-            }
-            is HostSQLite -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(
-                                ColumnOptionSQLite.PRIMARY_KEY,
-                                ColumnOptionSQLite.AUTOINCREMENT
-                            )
-                        }
-                    }
-                    add("vault_id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("page") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("owner") {
-                        type(ColumnTypeSQLite.TEXT)
-                    }
-                    add("slot") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("item_stack") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                }
-            }
-            else -> error("unknown database type")
-        }
-    }
-}
 
 /**
  * Item数据类
@@ -163,7 +78,7 @@ data class Item(
          * 获取指定页的物品
          */
         fun getItems(vault: Vault, page: Int, player: Player): List<Item> {
-            return if (vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) {
+            return if (vault.workspace.type == WorkspaceType.INDEPENDENT) {
                 table.select(dataSource) {
                     where {
                         "vault_id" eq vault.id
@@ -203,7 +118,7 @@ data class Item(
          * 设置物品
          */
         fun setItem(vault: Vault, page: Int, slot: Int, itemStack: ItemStack, player: Player? = null) {
-            val existing = if (vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) {
+            val existing = if (vault.workspace.type == WorkspaceType.INDEPENDENT) {
                 table.select(dataSource) {
                     where {
                         "vault_id" eq vault.id
@@ -230,7 +145,7 @@ data class Item(
                     value(
                         vault.id,
                         page,
-                        if (vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) player!!.uniqueId.toString() else null,
+                        if (vault.workspace.type == WorkspaceType.INDEPENDENT) player!!.uniqueId.toString() else null,
                         slot,
                         itemBase64
                     )
@@ -243,7 +158,7 @@ data class Item(
                         "vault_id" eq vault.id
                         "page" eq page
                         "slot" eq slot
-                        if (vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) {
+                        if (vault.workspace.type == WorkspaceType.INDEPENDENT) {
                             and { "owner" eq player!!.uniqueId.toString() }
                         }
                     }
@@ -255,7 +170,7 @@ data class Item(
          * 删除物品
          */
         fun removeItem(vault: Vault, page: Int, slot: Int, player: Player? = null) {
-            if (vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) {
+            if (vault.workspace.type == WorkspaceType.INDEPENDENT) {
                 table.delete(dataSource) {
                     where {
                         "vault_id" eq vault.id

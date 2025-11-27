@@ -2,105 +2,10 @@ package com.faithl.zephyrion.core.models
 
 import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.storage.DatabaseConfig
-import taboolib.module.database.*
+import taboolib.module.database.Table
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.ceil
-
-/**
- * Vaults表定义
- */
-object VaultsTable {
-
-    fun createTable(host: Host<*>): Table<*, *> {
-        val tableName = DatabaseConfig.getTableName("vaults")
-
-        return when (host) {
-            is HostSQL -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(
-                                ColumnOptionSQL.PRIMARY_KEY,
-                                ColumnOptionSQL.AUTO_INCREMENT,
-                                ColumnOptionSQL.UNSIGNED
-                            )
-                        }
-                    }
-                    add("name") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("description") {
-                        type(ColumnTypeSQL.VARCHAR, 255)
-                    }
-                    add("workspace_id") {
-                        type(ColumnTypeSQL.INT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("size") {
-                        type(ColumnTypeSQL.INT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                }
-            }
-            is HostSQLite -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(
-                                ColumnOptionSQLite.PRIMARY_KEY,
-                                ColumnOptionSQLite.AUTOINCREMENT
-                            )
-                        }
-                    }
-                    add("name") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("description") {
-                        type(ColumnTypeSQLite.TEXT)
-                    }
-                    add("workspace_id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("size") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                }
-            }
-            else -> error("unknown database type")
-        }
-    }
-}
 
 /**
  * Vault数据类

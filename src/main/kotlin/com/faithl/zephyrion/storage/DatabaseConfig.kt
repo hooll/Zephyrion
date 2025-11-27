@@ -1,10 +1,6 @@
 package com.faithl.zephyrion.storage
 
 import com.faithl.zephyrion.Zephyrion
-import taboolib.module.database.ColumnOptionSQL
-import taboolib.module.database.ColumnOptionSQLite
-import taboolib.module.database.ColumnTypeSQL
-import taboolib.module.database.ColumnTypeSQLite
 import taboolib.module.database.Host
 import taboolib.module.database.HostSQL
 import taboolib.module.database.HostSQLite
@@ -72,30 +68,30 @@ object DatabaseConfig {
 
     private fun createTables() {
         // 创建 Quotas 表
-        quotasTable = com.faithl.zephyrion.core.models.QuotasTable.createTable(host)
+        quotasTable = QuotasTable.createTable(host)
         quotasTable.createTable(dataSource)
 
         // 创建 Workspaces 表
-        workspacesTable = com.faithl.zephyrion.core.models.WorkspacesTable.createTable(host)
+        workspacesTable = WorkspacesTable.createTable(host)
         workspacesTable.createTable(dataSource)
 
         // 初始化独立工作空间
-        com.faithl.zephyrion.core.models.WorkspacesTable.initializeIndependentWorkspace()
+        com.faithl.zephyrion.core.models.Workspace.initializeIndependentWorkspace()
 
         // 创建 Vaults 表
-        vaultsTable = com.faithl.zephyrion.core.models.VaultsTable.createTable(host)
+        vaultsTable = VaultsTable.createTable(host)
         vaultsTable.createTable(dataSource)
 
         // 创建 Items 表
-        itemsTable = com.faithl.zephyrion.core.models.ItemsTable.createTable(host)
+        itemsTable = ItemsTable.createTable(host)
         itemsTable.createTable(dataSource)
 
         // 创建 Settings 表
-        settingsTable = com.faithl.zephyrion.core.models.SettingsTable.createTable(host)
+        settingsTable = SettingsTable.createTable(host)
         settingsTable.createTable(dataSource)
 
         // 创建 AutoPickups 表
-        autoPickupsTable = com.faithl.zephyrion.core.models.AutoPickupsTable.createTable(host)
+        autoPickupsTable = AutoPickupsTable.createTable(host)
         autoPickupsTable.createTable(dataSource)
     }
 

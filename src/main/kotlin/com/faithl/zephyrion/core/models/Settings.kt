@@ -1,102 +1,13 @@
 package com.faithl.zephyrion.core.models
 
 import com.faithl.zephyrion.storage.DatabaseConfig
-import taboolib.module.database.*
+import taboolib.module.database.Table
 
 /**
- * Settings表定义
+ * 设置类型枚举
  */
-object SettingsTable {
-
-    fun createTable(host: Host<*>): Table<*, *> {
-        val tableName = DatabaseConfig.getTableName("settings")
-
-        return when (host) {
-            is HostSQL -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(
-                                ColumnOptionSQL.PRIMARY_KEY,
-                                ColumnOptionSQL.AUTO_INCREMENT,
-                                ColumnOptionSQL.UNSIGNED
-                            )
-                        }
-                    }
-                    add("setting") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("value") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("vault_id") {
-                        type(ColumnTypeSQL.INT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                }
-            }
-            is HostSQLite -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(
-                                ColumnOptionSQLite.PRIMARY_KEY,
-                                ColumnOptionSQLite.AUTOINCREMENT
-                            )
-                        }
-                    }
-                    add("setting") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("value") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("vault_id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                }
-            }
-            else -> error("unknown database type")
-        }
-    }
-
-    /**
-     * 设置类型枚举
-     */
-    enum class SettingType {
-        // 可在此处添加设置类型
-    }
+enum class SettingType {
+    // 可在此处添加设置类型
 }
 
 /**

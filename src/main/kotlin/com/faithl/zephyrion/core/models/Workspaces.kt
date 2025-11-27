@@ -6,154 +6,20 @@ import com.faithl.zephyrion.storage.DatabaseConfig
 import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
-import taboolib.module.database.*
+import taboolib.module.database.Table
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Workspaces表定义
- */
-object WorkspacesTable {
 
-    fun createTable(host: Host<*>): Table<*, *> {
-        val tableName = DatabaseConfig.getTableName("workspaces")
-
-        return when (host) {
-            is HostSQL -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(
-                                ColumnOptionSQL.PRIMARY_KEY,
-                                ColumnOptionSQL.AUTO_INCREMENT,
-                                ColumnOptionSQL.UNSIGNED
-                            )
-                        }
-                    }
-                    add("name") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("description") {
-                        type(ColumnTypeSQL.VARCHAR, 255)
-                    }
-                    add("type") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("owner") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("members") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                }
-            }
-            is HostSQLite -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(
-                                ColumnOptionSQLite.PRIMARY_KEY,
-                                ColumnOptionSQLite.AUTOINCREMENT
-                            )
-                        }
-                    }
-                    add("name") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("description") {
-                        type(ColumnTypeSQLite.TEXT)
-                    }
-                    add("type") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("owner") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("members") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                }
-            }
-            else -> error("unknown database type")
-        }
-    }
-
-    /**
-     * 初始化独立工作空间
-     */
-    fun initializeIndependentWorkspace() {
-        if (!Zephyrion.settings.getBoolean("workspace.independent")) {
-            return
-        }
-
-        val dataSource = DatabaseConfig.dataSource
-        val table = DatabaseConfig.workspacesTable
-
-        // 检查是否已存在
-        val exists = table.select(dataSource) {
-            where { "name" eq "Independent" }
-        }.find()
-
-        if (!exists) {
-            table.insert(dataSource, "name", "description", "type", "owner", "members", "created_at", "updated_at") {
-                value(
-                    "Independent",
-                    "Independent workspace",
-                    "INDEPENDENT",
-                    "Server",
-                    "",
-                    System.currentTimeMillis(),
-                    System.currentTimeMillis()
-                )
-            }
-        }
-    }
+enum class WorkspaceType {
+    PUBLIC, PRIVATE, INDEPENDENT
 }
 
-/**
- * Workspace数据类
- */
 data class Workspace(
     var id: Int,
     var name: String,
     var desc: String?,
-    var type: Type,
+    var type: WorkspaceType,
     var owner: String,
     var members: String,
     var createdAt: Long,
@@ -168,16 +34,34 @@ data class Workspace(
         private val dataSource
             get() = DatabaseConfig.dataSource
 
-        /**
-         * 工作空间类型枚举
-         */
-        enum class Type {
-            PUBLIC, PRIVATE, INDEPENDENT
+        fun initializeIndependentWorkspace() {
+            if (!Zephyrion.settings.getBoolean("workspace.independent")) {
+                return
+            }
+
+            val dataSource = DatabaseConfig.dataSource
+            val table = DatabaseConfig.workspacesTable
+
+            // 检查是否已存在
+            val exists = table.select(dataSource) {
+                where { "name" eq "Independent" }
+            }.find()
+
+            if (!exists) {
+                table.insert(dataSource, "name", "description", "type", "owner", "members", "created_at", "updated_at") {
+                    value(
+                        "Independent",
+                        "Independent workspace",
+                        "INDEPENDENT",
+                        "Server",
+                        "",
+                        System.currentTimeMillis(),
+                        System.currentTimeMillis()
+                    )
+                }
+            }
         }
 
-        /**
-         * 根据ID获取工作空间
-         */
         fun findById(id: Int): Workspace? {
             return table.select(dataSource) {
                 where { "id" eq id }
@@ -186,7 +70,7 @@ data class Workspace(
                     id = getInt("id"),
                     name = getString("name"),
                     desc = getString("description"),
-                    type = Type.valueOf(getString("type")),
+                    type = WorkspaceType.valueOf(getString("type")),
                     owner = getString("owner"),
                     members = getString("members"),
                     createdAt = getLong("created_at"),
@@ -195,9 +79,6 @@ data class Workspace(
             }
         }
 
-        /**
-         * 获取独立工作空间
-         */
         fun getIndependentWorkspace(): Workspace? {
             return table.select(dataSource) {
                 where { "name" eq "Independent" }
@@ -206,7 +87,7 @@ data class Workspace(
                     id = getInt("id"),
                     name = getString("name"),
                     desc = getString("description"),
-                    type = Type.valueOf(getString("type")),
+                    type = WorkspaceType.valueOf(getString("type")),
                     owner = getString("owner"),
                     members = getString("members"),
                     createdAt = getLong("created_at"),
@@ -215,9 +96,6 @@ data class Workspace(
             }
         }
 
-        /**
-         * 获取玩家加入的所有工作空间
-         */
         fun getJoinedWorkspaces(player: Player): List<Workspace> {
             val playerUUID = player.uniqueId.toString()
             return table.select(dataSource) {
@@ -227,7 +105,7 @@ data class Workspace(
                     id = getInt("id"),
                     name = getString("name"),
                     desc = getString("description"),
-                    type = Type.valueOf(getString("type")),
+                    type = WorkspaceType.valueOf(getString("type")),
                     owner = getString("owner"),
                     members = getString("members"),
                     createdAt = getLong("created_at"),
@@ -236,9 +114,6 @@ data class Workspace(
             }
         }
 
-        /**
-         * 获取指定玩家的指定工作空间
-         */
         fun getWorkspace(player: String, name: String): Workspace? {
             return table.select(dataSource) {
                 where {
@@ -250,7 +125,7 @@ data class Workspace(
                     id = getInt("id"),
                     name = getString("name"),
                     desc = getString("description"),
-                    type = Type.valueOf(getString("type")),
+                    type = WorkspaceType.valueOf(getString("type")),
                     owner = getString("owner"),
                     members = getString("members"),
                     createdAt = getLong("created_at"),
@@ -259,9 +134,6 @@ data class Workspace(
             }
         }
 
-        /**
-         * 添加成员到工作空间
-         */
         fun addMember(workspace: Workspace, player: Player): Boolean {
             if (workspace.members.contains(player.uniqueId.toString())) {
                 return false
@@ -278,9 +150,6 @@ data class Workspace(
             return true
         }
 
-        /**
-         * 从工作空间移除成员
-         */
         fun removeMember(workspace: Workspace, player: OfflinePlayer): Boolean {
             if (workspace.owner == player.uniqueId.toString()) {
                 return false
@@ -302,9 +171,6 @@ data class Workspace(
         }
     }
 
-    /**
-     * 重命名工作空间
-     */
     fun rename(newName: String): ZephyrionAPI.Result {
         val result = ZephyrionAPI.validateWorkspaceName(newName, getOwner().uniqueId.toString())
         if (!result.success) {
@@ -322,9 +188,6 @@ data class Workspace(
         return ZephyrionAPI.Result(true)
     }
 
-    /**
-     * 获取创建时间(格式化)
-     */
     fun getCreatedAt(): String {
         return SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date(createdAt))
     }

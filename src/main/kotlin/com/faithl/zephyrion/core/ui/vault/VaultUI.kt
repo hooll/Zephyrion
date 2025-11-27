@@ -4,7 +4,7 @@ import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.api.events.VaultCloseEvent
 import com.faithl.zephyrion.api.events.VaultOpenEvent
 import com.faithl.zephyrion.core.models.Vault
-import com.faithl.zephyrion.core.models.Workspace
+import com.faithl.zephyrion.core.models.WorkspaceType
 import com.faithl.zephyrion.core.ui.SearchUI
 import com.faithl.zephyrion.core.ui.UI
 import com.faithl.zephyrion.core.ui.search.Search
@@ -18,7 +18,6 @@ import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
-import taboolib.module.nms.MinecraftVersion
 import taboolib.module.ui.InventoryViewProxy
 import taboolib.module.ui.buildMenu
 import taboolib.module.ui.type.Chest
@@ -84,7 +83,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                             }
                         }
 
-                        if (vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) return@writeItem
+                        if (vault.workspace.type == WorkspaceType.INDEPENDENT) return@writeItem
                         refresh(vault, currentPage, slot, itemStack)
                     }
                 }
@@ -329,7 +328,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
         @SubscribeEvent
         fun onOpen(e:VaultOpenEvent) {
-            if (e.vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) return
+            if (e.vault.workspace.type == WorkspaceType.INDEPENDENT) return
             val openingInv = openViewers.find { it.vaultId == e.vault.id && it.page == e.page } ?: run {
                 val newOpeningInv = OpeningInv(e.vault.id, e.page, mutableListOf())
                 openViewers.add(newOpeningInv)
@@ -340,7 +339,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
         @SubscribeEvent
         fun onClose(e:VaultCloseEvent) {
-            if (e.vault.workspace.type == Workspace.Companion.Type.INDEPENDENT) return
+            if (e.vault.workspace.type == WorkspaceType.INDEPENDENT) return
             val openingInv = openViewers.find { it.vaultId == e.vault.id && it.page == e.page }!!
             openingInv.players.remove(e.closer)
         }

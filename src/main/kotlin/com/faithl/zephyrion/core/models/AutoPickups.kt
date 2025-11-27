@@ -3,104 +3,15 @@ package com.faithl.zephyrion.core.models
 import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.storage.DatabaseConfig
 import org.bukkit.inventory.ItemStack
-import taboolib.module.database.*
+import taboolib.module.database.Table
 import taboolib.module.nms.getName
 
 /**
- * AutoPickups表定义
+ * 自动拾取类型枚举
  */
-object AutoPickupsTable {
-
-    fun createTable(host: Host<*>): Table<*, *> {
-        val tableName = DatabaseConfig.getTableName("auto_pickups")
-
-        return when (host) {
-            is HostSQL -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(
-                                ColumnOptionSQL.PRIMARY_KEY,
-                                ColumnOptionSQL.AUTO_INCREMENT,
-                                ColumnOptionSQL.UNSIGNED
-                            )
-                        }
-                    }
-                    add("type") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("value") {
-                        type(ColumnTypeSQL.VARCHAR, 255) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("vault_id") {
-                        type(ColumnTypeSQL.INT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQL.BIGINT) {
-                            options(ColumnOptionSQL.NOTNULL)
-                        }
-                    }
-                }
-            }
-            is HostSQLite -> {
-                Table(tableName, host) {
-                    add("id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(
-                                ColumnOptionSQLite.PRIMARY_KEY,
-                                ColumnOptionSQLite.AUTOINCREMENT
-                            )
-                        }
-                    }
-                    add("type") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("value") {
-                        type(ColumnTypeSQLite.TEXT) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("vault_id") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("created_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                    add("updated_at") {
-                        type(ColumnTypeSQLite.INTEGER) {
-                            options(ColumnOptionSQLite.NOTNULL)
-                        }
-                    }
-                }
-            }
-            else -> error("unknown database type")
-        }
-    }
-
-    /**
-     * 自动拾取类型枚举
-     */
-    enum class Type {
-        ITEM_PICKUP,
-        ITEM_NOT_PICKUP,
-    }
+enum class AutoPickupType {
+    ITEM_PICKUP,
+    ITEM_NOT_PICKUP,
 }
 
 /**
@@ -108,7 +19,7 @@ object AutoPickupsTable {
  */
 data class AutoPickup(
     var id: Int,
-    var type: AutoPickupsTable.Type,
+    var type: AutoPickupType,
     var value: String,
     var vaultId: Int,
     var createdAt: Long,
@@ -132,7 +43,7 @@ data class AutoPickup(
             }.map {
                 AutoPickup(
                     id = getInt("id"),
-                    type = AutoPickupsTable.Type.valueOf(getString("type")),
+                    type = AutoPickupType.valueOf(getString("type")),
                     value = getString("value"),
                     vaultId = getInt("vault_id"),
                     createdAt = getLong("created_at"),
@@ -144,7 +55,7 @@ data class AutoPickup(
         /**
          * 获取保险库的指定类型的自动拾取规则
          */
-        fun getAutoPickupsByType(vault: Vault, type: AutoPickupsTable.Type): List<AutoPickup> {
+        fun getAutoPickupsByType(vault: Vault, type: AutoPickupType): List<AutoPickup> {
             return table.select(dataSource) {
                 where {
                     "vault_id" eq vault.id
@@ -153,7 +64,7 @@ data class AutoPickup(
             }.map {
                 AutoPickup(
                     id = getInt("id"),
-                    type = AutoPickupsTable.Type.valueOf(getString("type")),
+                    type = AutoPickupType.valueOf(getString("type")),
                     value = getString("value"),
                     vaultId = getInt("vault_id"),
                     createdAt = getLong("created_at"),
@@ -165,7 +76,7 @@ data class AutoPickup(
         /**
          * 创建自动拾取规则
          */
-        fun createAutoPickup(vault: Vault, type: AutoPickupsTable.Type, value: String): ZephyrionAPI.Result {
+        fun createAutoPickup(vault: Vault, type: AutoPickupType, value: String): ZephyrionAPI.Result {
             if (value.isBlank()) {
                 return ZephyrionAPI.Result(false, "auto_pickup_value_empty")
             }
@@ -219,14 +130,14 @@ data class AutoPickup(
             val itemName = itemStack.getName()
             val itemLore = itemStack.itemMeta?.lore ?: emptyList()
 
-            val notPickupRules = rules.filter { it.type == AutoPickupsTable.Type.ITEM_NOT_PICKUP }
+            val notPickupRules = rules.filter { it.type == AutoPickupType.ITEM_NOT_PICKUP }
             for (rule in notPickupRules) {
                 if (matchesRule(itemMaterial, itemName, itemLore, rule.value)) {
                     return false
                 }
             }
 
-            val pickupRules = rules.filter { it.type == AutoPickupsTable.Type.ITEM_PICKUP }
+            val pickupRules = rules.filter { it.type == AutoPickupType.ITEM_PICKUP }
             for (rule in pickupRules) {
                 if (matchesRule(itemMaterial, itemName, itemLore, rule.value)) {
                     return true
