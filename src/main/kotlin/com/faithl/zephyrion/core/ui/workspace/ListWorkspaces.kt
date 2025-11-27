@@ -12,6 +12,7 @@ import com.faithl.zephyrion.core.ui.vault.ListVaults
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import taboolib.common.platform.function.submitAsync
 import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
 import taboolib.module.ui.buildMenu
@@ -70,7 +71,6 @@ class ListWorkspaces(override val opener: Player, val targetPlayer: Player? = nu
     }
 
     override fun build(): Inventory {
-        search()
         return buildMenu<PageableChestImpl<Workspace>>(title()) {
             setLinkedMenuProperties(this)
             setRows6SplitBlock(this)
@@ -242,7 +242,20 @@ class ListWorkspaces(override val opener: Player, val targetPlayer: Player? = nu
             opener.sendLang("no-permission")
             return
         }
-        opener.openInventory(build())
+
+        submitAsync {
+            try {
+                search()
+                sync {
+                    opener.openInventory(build())
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                sync {
+                    opener.sendLang("ui-load-error")
+                }
+            }
+        }
     }
 
 }

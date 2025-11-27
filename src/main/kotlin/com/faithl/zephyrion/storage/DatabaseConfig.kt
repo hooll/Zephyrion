@@ -75,7 +75,7 @@ object DatabaseConfig {
         workspacesTable = WorkspacesTable.createTable(host)
         workspacesTable.createTable(dataSource)
 
-        // 初始化独立工作空间
+        // 初始化公共工作空间
         com.faithl.zephyrion.core.models.Workspace.initializeIndependentWorkspace()
 
         // 创建 Vaults 表

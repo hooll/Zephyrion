@@ -6,6 +6,7 @@ import com.faithl.zephyrion.storage.DatabaseConfig
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import taboolib.common.platform.function.submitAsync
 
 object ZephyrionAPI {
 
@@ -71,10 +72,6 @@ object ZephyrionAPI {
 
     // 创建工作空间
     fun createWorkspace(owner: String, name: String?, type: WorkspaceType?, desc: String?): Result {
-        val ownerData = getUserData(owner)
-        if (ownerData.workspaceUsed + 1 > ownerData.workspaceQuotas) {
-            return Result(false, "workspace_quota_exceeded")
-        }
         val result = validateWorkspaceName(name, owner)
         if (!result.success) {
             return result
@@ -83,28 +80,41 @@ object ZephyrionAPI {
             return Result(false, "workspace_type_invalid")
         }
 
-        // 使用 TabooLib Table 插入
-        val table = DatabaseConfig.workspacesTable
+        val quotasTable = DatabaseConfig.quotasTable
         val dataSource = DatabaseConfig.dataSource
 
-        table.insert(dataSource, "name", "description", "type", "owner", "members", "created_at", "updated_at") {
-            value(
-                name!!,
-                desc,
-                type.name,
-                owner,
-                owner,
-                System.currentTimeMillis(),
-                System.currentTimeMillis()
-            )
+        val ownerData = getUserData(owner)
+        val newUsed = ownerData.workspaceUsed + 1
+
+        if (newUsed > ownerData.workspaceQuotas) {
+            return Result(false, "workspace_quota_exceeded")
         }
 
-        // 更新配额
-        ownerData.workspaceUsed += 1
-        val quotasTable = DatabaseConfig.quotasTable
-        quotasTable.update(dataSource) {
-            set("workspace_used", ownerData.workspaceUsed)
-            where { "player" eq owner }
+        val affected = quotasTable.update(dataSource) {
+            set("workspace_used", newUsed)
+            where {
+                "player" eq owner
+                and { "workspace_used" eq ownerData.workspaceUsed }
+            }
+        }
+
+        if (affected == 0) {
+            return Result(false, "workspace_quota_exceeded")
+        }
+
+        submitAsync {
+            val table = DatabaseConfig.workspacesTable
+            table.insert(dataSource, "name", "description", "type", "owner", "members", "created_at", "updated_at") {
+                value(
+                    name!!,
+                    desc,
+                    type.name,
+                    owner,
+                    owner,
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis()
+                )
+            }
         }
 
         return Result(true)
@@ -146,20 +156,20 @@ object ZephyrionAPI {
         if (!result.success) {
             return result
         }
-
-        // 使用 TabooLib Table 插入
         val table = DatabaseConfig.vaultsTable
         val dataSource = DatabaseConfig.dataSource
 
-        table.insert(dataSource, "name", "description", "workspace_id", "size", "created_at", "updated_at") {
-            value(
-                name!!,
-                desc,
-                workspace.id,
-                0,
-                System.currentTimeMillis(),
-                System.currentTimeMillis()
-            )
+        submitAsync {
+            table.insert(dataSource, "name", "description", "workspace_id", "size", "created_at", "updated_at") {
+                value(
+                    name!!,
+                    desc,
+                    workspace.id,
+                    0,
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis()
+                )
+            }
         }
 
         return Result(true)

@@ -24,12 +24,14 @@ import taboolib.module.ui.type.Chest
 import taboolib.module.ui.type.StorableChest
 import taboolib.module.ui.type.impl.StorableChestImpl
 import taboolib.platform.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * owner 打开的玩家
  */
 class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = null, var page: Int = 1) : SearchUI() {
 
+    private val itemsCache = ConcurrentHashMap<Int, ItemStack?>()
 
     val searchItems = mutableListOf<SearchItem>()
     override val params = mutableMapOf<String, String>()
@@ -89,15 +91,13 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                 }
 
                 readItem { inventory, slot ->
-                    val items = ZephyrionAPI.getItems(vault, currentPage,opener)
-                    items.find { it.slot == slot }?.itemStack
+                    itemsCache[slot]
                 }
             }
 
             onBuild { player, inventory ->
-                val items = ZephyrionAPI.getItems(vault, currentPage,player)
-                items.forEach {
-                    inventory.setItem(it.slot,it.itemStack)
+                itemsCache.forEach { (slot, itemStack) ->
+                    itemStack?.let { inventory.setItem(slot, it) }
                 }
                 setElements(this, inventory)
             }
@@ -277,7 +277,6 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     }
 
     override fun open() {
-        // 权限检查
         if (!ZephyrionAPI.isPluginAdmin(opener) &&
             !vault.workspace.isMember(opener.uniqueId.toString())) {
             return
@@ -287,10 +286,26 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
             return
         }
 
-        // 打开UI
-        val inv = build()
-        opener.openInventory(inv)
-        VaultOpenEvent(vault, page, inv, opener).call()
+        submitAsync {
+            try {
+                val items = ZephyrionAPI.getItems(vault, page, opener)
+                itemsCache.clear()
+                items.forEach {
+                    itemsCache[it.slot] = it.itemStack
+                }
+
+                sync {
+                    val inv = build()
+                    opener.openInventory(inv)
+                    VaultOpenEvent(vault, page, inv, opener).call()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                sync {
+                    opener.sendLang("ui-load-error")
+                }
+            }
+        }
     }
 
     override fun title(): String {

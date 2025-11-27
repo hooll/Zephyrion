@@ -230,11 +230,25 @@ data class Workspace(
      */
     fun delete() {
         val user = ZephyrionAPI.getUserData(owner)
-        user.workspaceUsed -= 1
+        val currentWorkspaceUsed = user.workspaceUsed
+        val newWorkspaceUsed = currentWorkspaceUsed - 1
 
-        table.update(dataSource) {
-            set("workspace_used", user.workspaceUsed)
-            where { "player" eq owner }
+        if (newWorkspaceUsed < 0) {
+            return
+        }
+
+        val quotasTable = DatabaseConfig.quotasTable
+
+        val affected = quotasTable.update(dataSource) {
+            set("workspace_used", newWorkspaceUsed)
+            where {
+                "player" eq owner
+                and { "workspace_used" eq currentWorkspaceUsed }
+            }
+        }
+
+        if (affected == 0) {
+            return
         }
 
         table.delete(dataSource) {

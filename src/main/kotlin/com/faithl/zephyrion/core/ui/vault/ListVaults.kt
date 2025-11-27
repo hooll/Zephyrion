@@ -13,6 +13,7 @@ import com.faithl.zephyrion.core.ui.setLinkedMenuProperties
 import com.faithl.zephyrion.core.ui.setRows6SplitBlock
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
+import taboolib.common.platform.function.submitAsync
 import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
 import taboolib.module.ui.buildMenu
@@ -67,7 +68,6 @@ class ListVaults(override val opener: Player, val workspace: Workspace, val root
     }
 
     override fun build(): Inventory {
-        search()
         return buildMenu<PageableChestImpl<Vault>>(title()) {
             setLinkedMenuProperties(this)
             setRows6SplitBlock(this)
@@ -192,7 +192,20 @@ class ListVaults(override val opener: Player, val workspace: Workspace, val root
         if (!ZephyrionAPI.isPluginAdmin(opener) && !workspace.isMember(opener.uniqueId.toString())) {
             return
         }
-        opener.openInventory(build())
+
+        submitAsync {
+            try {
+                search()
+                sync {
+                    opener.openInventory(build())
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                sync {
+                    opener.sendLang("ui-load-error")
+                }
+            }
+        }
     }
 
     override fun title(): String {

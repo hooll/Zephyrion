@@ -101,23 +101,30 @@ data class Vault(
      */
     fun addSize(add: Int): Boolean {
         val user = ZephyrionAPI.getUserData(workspace.owner)
+        val currentSizeUsed = user.sizeUsed
+        val newSizeUsed = currentSizeUsed + add
 
-        if (!user.unlimited && user.sizeUsed + add > user.sizeQuotas) {
+        if (!user.unlimited && newSizeUsed > user.sizeQuotas) {
             return false
         }
 
-        user.sizeUsed += add
+        val quotasTable = DatabaseConfig.quotasTable
+
+        val affected = quotasTable.update(dataSource) {
+            set("size_used", newSizeUsed)
+            where {
+                "player" eq workspace.owner
+                and { "size_used" eq currentSizeUsed }
+            }
+        }
+
+        if (affected == 0) {
+            return false
+        }
+
         size += add
         updatedAt = System.currentTimeMillis()
 
-        // 更新配额表
-        val quotasTable = DatabaseConfig.quotasTable
-        quotasTable.update(dataSource) {
-            set("size_used", user.sizeUsed)
-            where { "player" eq workspace.owner }
-        }
-
-        // 更新保险库表
         table.update(dataSource) {
             set("size", size)
             set("updated_at", updatedAt)
@@ -132,23 +139,30 @@ data class Vault(
      */
     fun removeSize(remove: Int): Boolean {
         val user = ZephyrionAPI.getUserData(workspace.owner)
+        val currentSizeUsed = user.sizeUsed
+        val newSizeUsed = currentSizeUsed - remove
 
-        if (user.sizeUsed - remove < 0) {
+        if (newSizeUsed < 0) {
             return false
         }
 
-        user.sizeUsed -= remove
+        val quotasTable = DatabaseConfig.quotasTable
+
+        val affected = quotasTable.update(dataSource) {
+            set("size_used", newSizeUsed)
+            where {
+                "player" eq workspace.owner
+                and { "size_used" eq currentSizeUsed }
+            }
+        }
+
+        if (affected == 0) {
+            return false
+        }
+
         size -= remove
         updatedAt = System.currentTimeMillis()
 
-        // 更新配额表
-        val quotasTable = DatabaseConfig.quotasTable
-        quotasTable.update(dataSource) {
-            set("size_used", user.sizeUsed)
-            where { "player" eq workspace.owner }
-        }
-
-        // 更新保险库表
         table.update(dataSource) {
             set("size", size)
             set("updated_at", updatedAt)
