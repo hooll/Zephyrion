@@ -4,6 +4,8 @@ import com.faithl.zephyrion.api.events.VaultAddItemEvent
 import com.faithl.zephyrion.api.events.VaultCloseEvent
 import com.faithl.zephyrion.api.events.VaultOpenEvent
 import com.faithl.zephyrion.api.events.VaultRemoveItemEvent
+import com.faithl.zephyrion.api.events.VaultSearchCloseEvent
+import com.faithl.zephyrion.api.events.VaultSearchOpenEvent
 import com.faithl.zephyrion.core.models.Vault
 import com.faithl.zephyrion.core.models.WorkspaceType
 import com.faithl.zephyrion.core.ui.vault.VaultUI
@@ -14,12 +16,7 @@ import taboolib.common.platform.function.submit
 import taboolib.module.ui.InventoryViewProxy
 import taboolib.module.ui.MenuHolder
 
-/**
- * 保险库同步服务
- *
- * 因为管理员和成员的 UI 不同（管理员有解锁按钮），无法共享整个 Inventory。
- * 只同步物品槽位 (0-35) 的内容。
- */
+
 object VaultSyncService {
 
     data class ViewerGroup(
@@ -28,11 +25,15 @@ object VaultSyncService {
         val viewers: MutableList<Player> = mutableListOf()
     )
 
-    private val groups = mutableSetOf<ViewerGroup>()
+    data class SearchViewerGroup(
+        val vaultId: Int,
+        val params: Map<String, String>,
+        val viewers: MutableList<Player> = mutableListOf()
+    )
 
-    /**
-     * 注册查看者
-     */
+    private val groups = mutableSetOf<ViewerGroup>()
+    private val searchGroups = mutableSetOf<SearchViewerGroup>()
+
     private fun register(vault: Vault, page: Int, player: Player) {
         if (vault.workspace.type == WorkspaceType.INDEPENDENT) return
 
@@ -44,9 +45,6 @@ object VaultSyncService {
         }
     }
 
-    /**
-     * 注销查看者
-     */
     private fun unregister(vault: Vault, page: Int, player: Player) {
         if (vault.workspace.type == WorkspaceType.INDEPENDENT) return
 
@@ -58,22 +56,51 @@ object VaultSyncService {
         }
     }
 
-    /**
-     * 同步物品变化到所有查看者（排除操作者本人）
-     * 只同步物品槽位 (0-35)
-     */
-    private fun syncItemChange(vault: Vault, page: Int, slot: Int, itemStack: ItemStack?, operator: Player?) {
+    private fun registerSearch(vault: Vault, params: Map<String, String>, player: Player) {
         if (vault.workspace.type == WorkspaceType.INDEPENDENT) return
+
+        val group = searchGroups.find { it.vaultId == vault.id && it.params == params }
+            ?: SearchViewerGroup(vault.id, params).also { searchGroups.add(it) }
+
+        if (!group.viewers.contains(player)) {
+            group.viewers.add(player)
+        }
+    }
+
+    private fun unregisterSearch(vault: Vault, player: Player) {
+        if (vault.workspace.type == WorkspaceType.INDEPENDENT) return
+
+        val affectedGroups = searchGroups.filter { it.vaultId == vault.id }.toList()
+        affectedGroups.forEach { group ->
+            group.viewers.remove(player)
+            if (group.viewers.isEmpty()) {
+                searchGroups.remove(group)
+            }
+        }
+    }
+
+    private fun syncItemChange(vault: Vault, page: Int, slot: Int, itemStack: ItemStack?, operator: Player?) {
         if (slot !in 0..35) return
 
-        val group = groups.find { it.vaultId == vault.id && it.page == page } ?: return
+        if (vault.workspace.type == WorkspaceType.INDEPENDENT) {
+            if (operator != null) {
+                val group = groups.find { it.vaultId == vault.id && it.page == page }
+                if (group != null && group.viewers.contains(operator)) {
+                    submit {
+                        val inv = InventoryViewProxy.getTopInventory(operator.openInventory)
+                        if (inv.holder is MenuHolder) {
+                            inv.setItem(slot, itemStack)
+                        }
+                    }
+                }
+            }
+            return
+        }
 
-        // 清理离线玩家
-        group.viewers.removeIf { !it.isOnline }
-
-        group.viewers
-            .filter { it != operator } // 排除操作者本人
-            .forEach { player ->
+        val group = groups.find { it.vaultId == vault.id && it.page == page }
+        if (group != null) {
+            group.viewers.removeIf { !it.isOnline }
+            group.viewers.forEach { player ->
                 submit {
                     val inv = InventoryViewProxy.getTopInventory(player.openInventory)
                     if (inv.holder is MenuHolder) {
@@ -81,11 +108,37 @@ object VaultSyncService {
                     }
                 }
             }
+        }
+
+        refreshSearchViewers(vault, operator)
     }
 
-    /**
-     * 刷新所有查看者（解锁槽位后需要重建 UI）
-     */
+    private fun refreshSearchViewers(vault: Vault, operator: Player?) {
+        val affectedGroups = searchGroups.filter { it.vaultId == vault.id }.toList()
+
+        affectedGroups.forEach { group ->
+            group.viewers.removeIf { !it.isOnline }
+
+            val viewersToRefresh = if (vault.workspace.type == WorkspaceType.INDEPENDENT) {
+                if (operator != null && group.viewers.contains(operator)) {
+                    listOf(operator)
+                } else {
+                    emptyList()
+                }
+            } else {
+                group.viewers.toList()
+            }
+
+            viewersToRefresh.forEach { player ->
+                submit {
+                    val newUI = VaultUI(player, vault)
+                    newUI.params.putAll(group.params)
+                    newUI.refreshSearchResults()
+                }
+            }
+        }
+    }
+
     fun refreshAllViewers(vault: Vault, page: Int) {
         if (vault.workspace.type == WorkspaceType.INDEPENDENT) return
 
@@ -110,6 +163,16 @@ object VaultSyncService {
     @SubscribeEvent
     fun onVaultClose(e: VaultCloseEvent) {
         unregister(e.vault, e.page, e.closer)
+    }
+
+    @SubscribeEvent
+    fun onVaultSearchOpen(e: VaultSearchOpenEvent) {
+        registerSearch(e.vault, e.params, e.opener)
+    }
+
+    @SubscribeEvent
+    fun onVaultSearchClose(e: VaultSearchCloseEvent) {
+        unregisterSearch(e.vault, e.closer)
     }
 
     @SubscribeEvent
