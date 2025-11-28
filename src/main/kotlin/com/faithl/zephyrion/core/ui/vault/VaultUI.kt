@@ -4,7 +4,7 @@ import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.api.events.VaultCloseEvent
 import com.faithl.zephyrion.api.events.VaultOpenEvent
 import com.faithl.zephyrion.core.models.Vault
-import com.faithl.zephyrion.core.models.WorkspaceType
+import com.faithl.zephyrion.core.services.VaultSyncService
 import com.faithl.zephyrion.core.ui.SearchUI
 import com.faithl.zephyrion.core.ui.UI
 import com.faithl.zephyrion.core.ui.search.Search
@@ -12,27 +12,19 @@ import com.faithl.zephyrion.core.ui.search.SearchItem
 import com.faithl.zephyrion.core.ui.setRows6SplitBlock
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.ItemStack
-import taboolib.common.platform.event.SubscribeEvent
-import taboolib.common.platform.function.submit
-import taboolib.common.platform.function.submitAsync
 import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
-import taboolib.module.ui.InventoryViewProxy
 import taboolib.module.ui.buildMenu
 import taboolib.module.ui.type.Chest
 import taboolib.module.ui.type.StorableChest
 import taboolib.module.ui.type.impl.StorableChestImpl
 import taboolib.platform.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * owner 打开的玩家
  */
 class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = null, var page: Int = 1) : SearchUI() {
 
-    private val itemsCache = ConcurrentHashMap<Int, ItemStack?>()
-    private var searchResults = listOf<com.faithl.zephyrion.core.models.Item>()
 
     val searchItems = mutableListOf<SearchItem>()
     override val params = mutableMapOf<String, String>()
@@ -52,10 +44,8 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
             rule {
 
-                checkSlot { inventory, itemStack, slot ->
+                checkSlot { inventory, itemStack,slot ->
                     if (slot !in 0..35) return@checkSlot false
-                    if (params.isNotEmpty()) return@checkSlot false
-
                     val lockedSlots = getLockedSlots(vault, currentPage)
                     if (lockedSlots != null && slot in lockedSlots) {
                         return@checkSlot false
@@ -64,8 +54,6 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                 }
 
                 firstSlot { inventory, itemStack ->
-                    if (params.isNotEmpty()) return@firstSlot -1
-
                     val lockedSlots = getLockedSlots(vault, currentPage)
                     (0..35).firstOrNull { slot ->
                         val item = inventory.getItem(slot)
@@ -76,35 +64,26 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                 }
 
                 writeItem { inventory, itemStack, slot, clickType ->
-                    if (params.isNotEmpty()) return@writeItem
-
                     if (slot in 0..35) {
                         inventory.setItem(slot, itemStack)
-                        submitAsync {
-                            try {
-                                if (itemStack.isAir){
-                                    ZephyrionAPI.removeItem(vault, currentPage, slot, opener)
-                                }else{
-                                    ZephyrionAPI.setItem(vault, currentPage, slot, itemStack, opener)
-                                }
-                            }catch (e:Exception){
-                                e.printStackTrace()
-                            }
+                        if (itemStack.isAir){
+                            ZephyrionAPI.removeItem(vault, currentPage, slot, opener)
+                        }else{
+                            ZephyrionAPI.setItem(vault, currentPage, slot, itemStack, opener)
                         }
-
-                        if (vault.workspace.type == WorkspaceType.INDEPENDENT) return@writeItem
-                        refresh(vault, currentPage, slot, itemStack)
                     }
                 }
 
                 readItem { inventory, slot ->
-                    itemsCache[slot]
+                    val items = ZephyrionAPI.getItems(vault, currentPage,opener)
+                    items.find { it.slot == slot }?.itemStack
                 }
             }
 
             onBuild { player, inventory ->
-                itemsCache.forEach { (slot, itemStack) ->
-                    itemStack?.let { inventory.setItem(slot, it) }
+                val items = ZephyrionAPI.getItems(vault, currentPage,player)
+                items.forEach {
+                    inventory.setItem(it.slot,it.itemStack)
                 }
                 setElements(this, inventory)
             }
@@ -128,12 +107,10 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
     fun setElements(menu: StorableChest, inventory: Inventory) {
         if (params.isNotEmpty()) {
-            return
+            // TODO: 搜索模式
         } else {
-            // 普通浏览模式：显示锁定槽位
             if (page == vault.getMaxPage()) {
-                val ownerData = ZephyrionAPI.getUserData(vault.workspace.owner)
-
+                val ownerData =  ZephyrionAPI.getUserData(vault.workspace.owner)
                 getLockedSlots(vault, page)?.let { range ->
                     for (i in range) {
                         inventory.setItem(i, buildItem(XMaterial.BLUE_STAINED_GLASS_PANE) {
@@ -159,7 +136,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
 
                         menu.onClick(i) { event ->
                             val clicker = event.clicker
-                            if (vault.workspace.owner != clicker.uniqueId.toString() &&
+                            if (vault.workspace.owner != clicker.uniqueId.toString()&&
                                 !ZephyrionAPI.isPluginAdmin(clicker)) {
                                 clicker.sendLang("vault-main-unlock-no-permission")
                                 return@onClick
@@ -176,7 +153,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                                         val result = vault.addSize(input.toInt())
                                         if (result) {
                                             clicker.sendLang("vault-main-unlock-succeed", input.toInt())
-                                            refreshUI(vault,page)
+                                            VaultSyncService.refreshAllViewers(vault, page)
                                         } else {
                                             clicker.sendLang(
                                                 "vault-main-unlock-failed",
@@ -196,14 +173,6 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     }
 
     fun setPageTurnItems(menu: StorableChest) {
-        val maxPage = if (params.isNotEmpty()) {
-            // 搜索模式：根据搜索结果计算最大页数
-            if (searchResults.isEmpty()) 1 else (searchResults.size + 35) / 36
-        } else {
-            // 普通模式：使用vault的最大页数
-            vault.getMaxPage()
-        }
-
         menu.set(48) {
             if (page == 1) {
                 buildItem(XMaterial.BARRIER) {
@@ -216,7 +185,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
             }
         }
         menu.set(50) {
-            if (page == maxPage) {
+            if (page == vault.getMaxPage()) {
                 buildItem(XMaterial.BARRIER) {
                     name = opener.asLangText("vault-main-next-page-disabled")
                 }
@@ -228,16 +197,12 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
         }
         menu.onClick(48) { event ->
             if (page != 1) {
-                VaultUI(event.clicker, vault, root, page - 1).apply {
-                    params.putAll(this@VaultUI.params)
-                }.open()
+                VaultUI(event.clicker, vault, root, page - 1).open()
             }
         }
         menu.onClick(50) { event ->
-            if (page != maxPage) {
-                VaultUI(event.clicker, vault, root, page + 1).apply {
-                    params.putAll(this@VaultUI.params)
-                }.open()
+            if (page != vault.getMaxPage()) {
+                VaultUI(event.clicker, vault, root, page + 1).open()
             }
         }
     }
@@ -297,42 +262,20 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     }
 
     override fun open() {
+        // 权限检查
         if (!ZephyrionAPI.isPluginAdmin(opener) &&
             !vault.workspace.isMember(opener.uniqueId.toString())) {
             return
         }
 
-        submitAsync {
-            try {
-                if (params.isNotEmpty()) {
-                    // 搜索模式
-                    search()
-                    sync {
-                        val inv = build()
-                        opener.openInventory(inv)
-                        VaultOpenEvent(vault, page, inv, opener).call()
-                    }
-                } else {
-                    // 普通浏览模式
-                    val items = ZephyrionAPI.getItems(vault, page, opener)
-                    itemsCache.clear()
-                    items.forEach {
-                        itemsCache[it.slot] = it.itemStack
-                    }
-
-                    sync {
-                        val inv = build()
-                        opener.openInventory(inv)
-                        VaultOpenEvent(vault, page, inv, opener).call()
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                sync {
-                    opener.sendLang("ui-load-error")
-                }
-            }
+        if (params.isNotEmpty()) {
+            // TODO: 搜索模式
+            return
         }
+
+        val inv = build()
+        opener.openInventory(inv)
+        VaultOpenEvent(vault, page, inv, opener).call()
     }
 
     override fun title(): String {
@@ -344,28 +287,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     }
 
     override fun search() {
-        // 合并所有搜索条件的结果
-        val allResults = mutableSetOf<com.faithl.zephyrion.core.models.Item>()
-
-        params["name"]?.let { name ->
-            allResults.addAll(ZephyrionAPI.searchItemsByName(vault, name))
-        }
-
-        params["lore"]?.let { lore ->
-            allResults.addAll(ZephyrionAPI.searchItemsByLore(vault, lore))
-        }
-
-        searchResults = allResults.toList()
-
-        // 根据当前页填充itemsCache
-        itemsCache.clear()
-        val startIndex = (page - 1) * 36
-        val endIndex = minOf(startIndex + 36, searchResults.size)
-
-        for (i in startIndex until endIndex) {
-            val slot = i - startIndex
-            itemsCache[slot] = searchResults[i].itemStack
-        }
+        //TODO
     }
 
     companion object {
@@ -384,57 +306,5 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                 null
             }
         }
-
-        data class OpeningInv(val vaultId: Int, val page: Int, val players: MutableList<Player>)
-
-        private val openViewers = mutableSetOf<OpeningInv>()
-
-        @SubscribeEvent
-        fun onOpen(e:VaultOpenEvent) {
-            if (e.vault.workspace.type == WorkspaceType.INDEPENDENT) return
-            val openingInv = openViewers.find { it.vaultId == e.vault.id && it.page == e.page } ?: run {
-                val newOpeningInv = OpeningInv(e.vault.id, e.page, mutableListOf())
-                openViewers.add(newOpeningInv)
-                newOpeningInv
-            }
-            openingInv.players.add(e.opener)
-        }
-
-        @SubscribeEvent
-        fun onClose(e:VaultCloseEvent) {
-            if (e.vault.workspace.type == WorkspaceType.INDEPENDENT) return
-            val openingInv = openViewers.find { it.vaultId == e.vault.id && it.page == e.page }!!
-            openingInv.players.remove(e.closer)
-        }
-
-        private fun refresh(vault: Vault, page: Int, slot: Int, itemStack: ItemStack) {
-            val openingInv = openViewers.find { it.vaultId == vault.id && it.page == page } ?: return
-            openingInv.players.forEach {
-                if (!it.isOnline) {
-                    openingInv.players.remove(it)
-                    return@forEach
-                }
-                submit {
-                    val inv =InventoryViewProxy.getTopInventory(it.openInventory)
-                    if (inv.holder is taboolib.module.ui.MenuHolder) {
-                        inv.setItem(slot, itemStack)
-                    }
-                }
-            }
-        }
-
-        //重新打开UI
-        private fun refreshUI(vault: Vault, page: Int) {
-            val openingInv = openViewers.find { it.vaultId == vault.id && it.page == page } ?: return
-            openingInv.players.forEach {
-                if (!it.isOnline) {
-                    openingInv.players.remove(it)
-                    return@forEach
-                }
-                it.closeInventory()
-                VaultUI(it,vault,page = page).open()
-            }
-        }
-
     }
 }
