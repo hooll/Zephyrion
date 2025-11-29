@@ -134,9 +134,7 @@ class ListMembers(override val opener: Player, val workspace: Workspace, val roo
                 val target = Bukkit.getPlayer(it)
                 if (target == null) {
                     opener.sendLang("workspace-members-add-offline")
-                    sync {
-                        open()
-                    }
+                    open()
                     return@nextChat
                 }
                 val result = ZephyrionAPI.addMember(workspace, target)
@@ -145,9 +143,7 @@ class ListMembers(override val opener: Player, val workspace: Workspace, val roo
                 } else {
                     opener.sendLang("workspace-members-add-existed")
                 }
-                sync {
-                    open()
-                }
+                open()
             }
         }
     }
@@ -180,18 +176,12 @@ class ListMembers(override val opener: Player, val workspace: Workspace, val roo
     }
 
     override fun open() {
-        submitAsync {
-            try {
-                search()
-                sync {
-                    opener.openInventory(build())
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                sync {
-                    opener.sendLang("ui-load-error")
-                }
-            }
+        try {
+            search()
+            opener.openInventory(build())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            opener.sendLang("ui-load-error")
         }
     }
 
@@ -212,9 +202,7 @@ class ListMembers(override val opener: Player, val workspace: Workspace, val roo
             opener.sendLang("workspace-members-search-by-${name}-input")
             opener.nextChat {
                 params[name] = it
-                sync {
-                    searchUI.open()
-                }
+                searchUI.open()
             }
         }
     }

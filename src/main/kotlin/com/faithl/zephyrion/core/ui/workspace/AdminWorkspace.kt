@@ -68,31 +68,29 @@ class AdminWorkspace(override val opener: Player, val workspace: Workspace, val 
             opener.closeInventory()
             opener.sendLang("workspace-admin-input-name")
             opener.nextChat {
-                sync {
-                    val result = workspace.rename(it)
-                    when (result.reason) {
-                        "workspace_name_invalid" -> {
-                            opener.sendLang("workspace-admin-reset-name-invalid")
-                        }
-
-                        "workspace_name_color" -> {
-                            opener.sendLang("workspace-admin-reset-name-color")
-                        }
-
-                        "workspace_name_length" -> {
-                            opener.sendLang("workspace-admin-reset-name-length")
-                        }
-
-                        "workspace_already_exists" -> {
-                            opener.sendLang("workspace-admin-reset-name-existed")
-                        }
-
-                        null -> {
-                            opener.sendLang("workspace-admin-reset-name-succeed")
-                        }
+                val result = workspace.rename(it)
+                when (result.reason) {
+                    "workspace_name_invalid" -> {
+                        opener.sendLang("workspace-admin-reset-name-invalid")
                     }
-                    open()
+
+                    "workspace_name_color" -> {
+                        opener.sendLang("workspace-admin-reset-name-color")
+                    }
+
+                    "workspace_name_length" -> {
+                        opener.sendLang("workspace-admin-reset-name-length")
+                    }
+
+                    "workspace_already_exists" -> {
+                        opener.sendLang("workspace-admin-reset-name-existed")
+                    }
+
+                    null -> {
+                        opener.sendLang("workspace-admin-reset-name-succeed")
+                    }
                 }
+                open()
             }
         }
     }
@@ -107,21 +105,19 @@ class AdminWorkspace(override val opener: Player, val workspace: Workspace, val 
             opener.closeInventory()
             opener.sendLang("workspace-admin-input-desc")
             opener.nextChat {
-                sync {
-                    workspace.desc = it
-                    workspace.updatedAt = System.currentTimeMillis()
+                workspace.desc = it
+                workspace.updatedAt = System.currentTimeMillis()
 
-                    val table = com.faithl.zephyrion.storage.DatabaseConfig.workspacesTable
-                    val dataSource = com.faithl.zephyrion.storage.DatabaseConfig.dataSource
-                    table.update(dataSource) {
-                        set("description", workspace.desc)
-                        set("updated_at", workspace.updatedAt)
-                        where { "id" eq workspace.id }
-                    }
-
-                    opener.sendLang("workspace-admin-reset-desc-succeed")
-                    open()
+                val table = com.faithl.zephyrion.storage.DatabaseConfig.workspacesTable
+                val dataSource = com.faithl.zephyrion.storage.DatabaseConfig.dataSource
+                table.update(dataSource) {
+                    set("description", workspace.desc)
+                    set("updated_at", workspace.updatedAt)
+                    where { "id" eq workspace.id }
                 }
+
+                opener.sendLang("workspace-admin-reset-desc-succeed")
+                open()
             }
         }
     }
@@ -150,14 +146,10 @@ class AdminWorkspace(override val opener: Player, val workspace: Workspace, val 
                 if (it == "Y") {
                     workspace.delete()
                     opener.sendLang("workspace-admin-delete-succeed")
-                    sync {
-                        root.open()
-                    }
+                    root.open()
                 } else {
                     opener.sendLang("workspace-admin-delete-canceled")
-                    sync {
-                        root.open()
-                    }
+                    root.open()
                 }
             }
         }

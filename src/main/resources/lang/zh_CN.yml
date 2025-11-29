@@ -346,7 +346,7 @@ auto-pickup-rule-not-pickup-desc:
   - "&7规则: {0}"
   - "&7左键编辑"
   - "&7右键删除"
-auto-pickup-input-rule: "&b[Zephyrion] 请输入规则"
+auto-pickup-input-rule: "&b[Zephyrion] 请输入规则, 输入 &c&lcancel &b取消"
 auto-pickup-input-rule-help:
   - "&a支持的规则格式:"
   - "&7type:DIAMOND &f- 匹配材料类型"
@@ -355,6 +355,7 @@ auto-pickup-input-rule-help:
   - "&7regex:.*钻石.* &f- 正则匹配名称"
   - "&7regex-lore:.*传说.* &f- 正则匹配lore"
   - "&7钻石 &f- 默认匹配物品名称"
+auto-pickup-input-canceled: "&b[Zephyrion] &c已取消"
 auto-pickup-create-succeed: "&b[Zephyrion] &a规则添加成功"
 auto-pickup-create-failed-empty: "&b[Zephyrion] &c规则不能为空"
 auto-pickup-create-failed-exists: "&b[Zephyrion] &c该规则已存在"
@@ -368,3 +369,47 @@ auto-pickup-clear-canceled: "&b[Zephyrion] &c已取消"
 auto-pickup-item-picked: "&b[Zephyrion] &a物品 {0} 已自动存入仓库: {1}"
 auto-pickup-no-permission: "&b[Zephyrion] &c你没有权限使用自动拾取功能"
 auto-pickup-no-space: "&b[Zephyrion] &c仓库空间不足，无法自动拾取"
+
+# 放置物品添加规则
+auto-pickup-add-by-item: "&a放入物品添加"
+auto-pickup-add-by-item-desc:
+  - "&7将物品放入槽位"
+  - "&7快速添加规则"
+  - "&e推荐使用"
+auto-pickup-add-title: "&b添加自动拾取规则"
+auto-pickup-add-item-slot: "&b物品槽"
+auto-pickup-add-item-slot-desc:
+  - "&7将物品放入此槽位"
+  - "&7然后选择规则类型"
+auto-pickup-add-type-pickup: "&a拾取规则"
+auto-pickup-add-type-pickup-selected:
+  - "&7当前选中"
+  - "&a匹配的物品将自动拾取"
+auto-pickup-add-type-pickup-unselected:
+  - "&7点击选择此类型"
+auto-pickup-add-type-not-pickup: "&c不拾取规则"
+auto-pickup-add-type-not-pickup-selected:
+  - "&7当前选中"
+  - "&c匹配的物品将不会拾取"
+auto-pickup-add-type-not-pickup-unselected:
+  - "&7点击选择此类型"
+auto-pickup-add-by-type: "&6按材料类型"
+auto-pickup-add-by-type-desc:
+  - "&7匹配材料: &f{0}"
+  - "&7点击添加"
+auto-pickup-add-by-name: "&e按物品名称"
+auto-pickup-add-by-name-desc:
+  - "&7匹配名称包含: &f{0}"
+  - "&7点击添加"
+auto-pickup-add-by-exact-name: "&b精确名称匹配"
+auto-pickup-add-by-exact-name-desc:
+  - "&7精确匹配: &f{0}"
+  - "&7点击添加"
+auto-pickup-add-by-lore: "&d按Lore内容"
+auto-pickup-add-by-lore-desc:
+  - "&7匹配Lore包含: &f{0}..."
+  - "&7点击添加"
+auto-pickup-add-no-item: "&b[Zephyrion] &c请先放入物品"
+auto-pickup-add-no-lore: "&b[Zephyrion] &c物品没有Lore"
+auto-pickup-add-return: "&c返回"
+auto-pickup-create-failed: "&b[Zephyrion] &c规则添加失败"

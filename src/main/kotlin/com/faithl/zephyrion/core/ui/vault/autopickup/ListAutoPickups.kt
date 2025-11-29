@@ -1,4 +1,4 @@
-package com.faithl.zephyrion.core.ui.vault
+package com.faithl.zephyrion.core.ui.vault.autopickup
 
 import com.faithl.zephyrion.api.ZephyrionAPI
 import com.faithl.zephyrion.core.models.AutoPickup
@@ -12,12 +12,16 @@ import com.faithl.zephyrion.core.ui.setLinkedMenuProperties
 import com.faithl.zephyrion.core.ui.setRows6SplitBlock
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
-import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
 import taboolib.module.ui.buildMenu
 import taboolib.module.ui.type.PageableChest
 import taboolib.module.ui.type.impl.PageableChestImpl
-import taboolib.platform.util.*
+import taboolib.platform.util.asLangText
+import taboolib.platform.util.asLangTextList
+import taboolib.platform.util.buildItem
+import taboolib.platform.util.nextChat
+import taboolib.platform.util.sendLang
+import kotlin.collections.plusAssign
 
 class ListAutoPickups(override val opener: Player, val vault: Vault, val root: UI? = null) : SearchUI() {
 
@@ -62,9 +66,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
             opener.sendLang("auto-pickup-search-by-${name}-input")
             opener.nextChat {
                 params[name] = it
-                sync {
-                    searchUI.open()
-                }
+                searchUI.open()
             }
         }
     }
@@ -105,18 +107,21 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
                 opener.sendLang("auto-pickup-input-rule")
                 opener.sendLang("auto-pickup-input-rule-help")
                 opener.nextChat {
-                    sync {
-                        val result = ZephyrionAPI.updateAutoPickup(element, it)
-                        if (result.success) {
-                            opener.sendLang("auto-pickup-update-succeed")
-                        } else {
-                            when (result.reason) {
-                                "auto_pickup_value_empty" -> opener.sendLang("auto-pickup-create-failed-empty")
-                                else -> opener.sendLang("auto-pickup-update-failed")
-                            }
-                        }
+                    if (it.equals("cancel", ignoreCase = true)) {
+                        opener.sendLang("auto-pickup-input-canceled")
                         open()
+                        return@nextChat
                     }
+                    val result = ZephyrionAPI.updateAutoPickup(element, it)
+                    if (result.success) {
+                        opener.sendLang("auto-pickup-update-succeed")
+                    } else {
+                        when (result.reason) {
+                            "auto_pickup_value_empty" -> opener.sendLang("auto-pickup-create-failed-empty")
+                            else -> opener.sendLang("auto-pickup-update-failed")
+                        }
+                    }
+                    open()
                 }
             } else if (event.clickEvent().isRightClick) {
                 if (ZephyrionAPI.deleteAutoPickup(element)) {
@@ -130,40 +135,55 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
     }
 
     fun setAddRuleItem(menu: PageableChest<AutoPickup>) {
+        // 槽位 45: 放置物品添加（推荐）
         menu.set(45) {
+            buildItem(XMaterial.HOPPER) {
+                name = opener.asLangText("auto-pickup-add-by-item")
+                lore += opener.asLangTextList("auto-pickup-add-by-item-desc")
+            }
+        }
+        menu.onClick(45) {
+            AddAutoPickup(opener, vault, this).open()
+        }
+
+        // 槽位 46: 手动输入添加
+        menu.set(46) {
             buildItem(XMaterial.NETHER_STAR) {
                 name = opener.asLangText("auto-pickup-add-rule")
                 lore += opener.asLangTextList("auto-pickup-add-rule-desc")
             }
         }
-        menu.onClick(45) { event ->
+        menu.onClick(46) { event ->
             opener.closeInventory()
             opener.sendLang("auto-pickup-input-rule")
             opener.sendLang("auto-pickup-input-rule-help")
             opener.nextChat {
-                sync {
-                    val ruleType = if (event.clickEvent().isLeftClick) {
-                        AutoPickupType.ITEM_PICKUP
-                    } else {
-                        AutoPickupType.ITEM_NOT_PICKUP
-                    }
-                    val result = ZephyrionAPI.createAutoPickup(vault, ruleType, it)
-                    if (result.success) {
-                        opener.sendLang("auto-pickup-create-succeed")
-                    } else {
-                        when (result.reason) {
-                            "auto_pickup_value_empty" -> opener.sendLang("auto-pickup-create-failed-empty")
-                            "auto_pickup_already_exists" -> opener.sendLang("auto-pickup-create-failed-exists")
-                        }
-                    }
+                if (it.equals("cancel", ignoreCase = true)) {
+                    opener.sendLang("auto-pickup-input-canceled")
                     open()
+                    return@nextChat
                 }
+                val ruleType = if (event.clickEvent().isLeftClick) {
+                    AutoPickupType.ITEM_PICKUP
+                } else {
+                    AutoPickupType.ITEM_NOT_PICKUP
+                }
+                val result = ZephyrionAPI.createAutoPickup(vault, ruleType, it)
+                if (result.success) {
+                    opener.sendLang("auto-pickup-create-succeed")
+                } else {
+                    when (result.reason) {
+                        "auto_pickup_value_empty" -> opener.sendLang("auto-pickup-create-failed-empty")
+                        "auto_pickup_already_exists" -> opener.sendLang("auto-pickup-create-failed-exists")
+                    }
+                }
+                open()
             }
         }
     }
 
     fun setInfoItem(menu: PageableChest<AutoPickup>) {
-        menu.set(46) {
+        menu.set(47) {
             val allRules = ZephyrionAPI.getAutoPickups(vault)
             val pickupCount = allRules.count { it.type == AutoPickupType.ITEM_PICKUP }
             val notPickupCount = allRules.count { it.type == AutoPickupType.ITEM_NOT_PICKUP }
@@ -176,25 +196,23 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
     }
 
     fun setClearItem(menu: PageableChest<AutoPickup>) {
-        menu.set(47) {
-            buildItem(XMaterial.BARRIER) {
+        menu.set(51) {
+            buildItem(XMaterial.LAVA_BUCKET) {
                 name = opener.asLangText("auto-pickup-clear")
                 lore.add(opener.asLangText("auto-pickup-clear-desc"))
             }
         }
-        menu.onClick(47) {
+        menu.onClick(51) {
             opener.closeInventory()
             opener.sendLang("auto-pickup-clear-tip")
             opener.nextChat {
-                sync {
-                    if (it == "Y") {
-                        val count = ZephyrionAPI.clearAutoPickups(vault)
-                        opener.sendLang("auto-pickup-clear-succeed", count)
-                    } else {
-                        opener.sendLang("auto-pickup-clear-canceled")
-                    }
-                    open()
+                if (it == "Y") {
+                    val count = ZephyrionAPI.clearAutoPickups(vault)
+                    opener.sendLang("auto-pickup-clear-succeed", count)
+                } else {
+                    opener.sendLang("auto-pickup-clear-canceled")
                 }
+                open()
             }
         }
     }
@@ -242,7 +260,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
             }
         }
         menu.onClick(53) {
-            root?.open() ?: opener.closeInventory()
+            root?.open() ?: it.clicker.closeInventory()
         }
     }
 

@@ -15,6 +15,7 @@ import com.faithl.zephyrion.core.ui.search.SearchItem
 import com.faithl.zephyrion.core.ui.setRows6SplitBlock
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
+import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
@@ -216,8 +217,8 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                                 inventory.setItem(slot, null)
                                 ZephyrionAPI.removeItem(vault, item.page, item.slot, opener)
                                 // 延迟刷新，等待数据库操作完成
-                                submitAsync(delay = 2L) {
-                                    sync { ui.refreshSearchResults() }
+                                submit(delay = 1L) {
+                                    ui.refreshSearchResults()
                                 }
                             }
                         } else {
@@ -227,8 +228,8 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                                 val (targetPage, targetSlot) = available
                                 ZephyrionAPI.setItem(vault, targetPage, targetSlot, itemStack, opener)
                                 // 延迟刷新，等待数据库操作完成
-                                submitAsync(delay = 2L) {
-                                    sync { ui.refreshSearchResults() }
+                                submit(delay = 1L) {
+                                    ui.refreshSearchResults()
                                 }
                             } else {
                                 // 没有可用槽位，返回物品给玩家
@@ -416,31 +417,29 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                         clicker.closeInventory()
                         clicker.sendLang("vault-main-unlock-tip")
                         clicker.nextChat { input ->
-                            sync {
-                                if (input == "0") {
-                                    clicker.sendLang("vault-main-unlock-canceled")
-                                    } else {
-                                        val currentOwnerData = ZephyrionAPI.getUserData(vault.workspace.owner)
-                                        val result = vault.addSize(input.toInt())
-                                        if (result) {
-                                            clicker.sendLang("vault-main-unlock-succeed", input.toInt())
-                                            VaultSyncService.refreshAllViewers(vault, page)
-                                        } else {
-                                            clicker.sendLang(
-                                                "vault-main-unlock-failed",
-                                                currentOwnerData.sizeQuotas - currentOwnerData.sizeUsed,
-                                                input
-                                            )
-                                        }
-                                    }
-                                    open()
+                            if (input == "0") {
+                                clicker.sendLang("vault-main-unlock-canceled")
+                            } else {
+                                val currentOwnerData = ZephyrionAPI.getUserData(vault.workspace.owner)
+                                val result = ZephyrionAPI.addSize(vault,input.toInt())
+                                if (result) {
+                                    clicker.sendLang("vault-main-unlock-succeed", input.toInt())
+                                    VaultSyncService.refreshAllViewers(vault, page)
+                                } else {
+                                    clicker.sendLang(
+                                        "vault-main-unlock-failed",
+                                        currentOwnerData.sizeQuotas - currentOwnerData.sizeUsed,
+                                        input
+                                    )
                                 }
                             }
+                            open()
                         }
                     }
                 }
             }
         }
+    }
 
     fun setPageTurnItems(menu: StorableChest) {
         menu.set(48) {
@@ -497,9 +496,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
             player.sendLang("vault-main-search-by-${name}-input")
             player.nextChat { input ->
                 params[name] = input
-                sync {
-                    searchUI.open()
-                }
+                searchUI.open()
             }
         }
     }

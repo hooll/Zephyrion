@@ -3,6 +3,7 @@ package com.faithl.zephyrion.core.ui.vault
 import com.faithl.zephyrion.core.models.Vault
 import com.faithl.zephyrion.core.ui.UI
 import com.faithl.zephyrion.core.ui.setSplitBlock
+import com.faithl.zephyrion.core.ui.vault.autopickup.ListAutoPickups
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import taboolib.common.util.sync
@@ -66,18 +67,16 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
             opener.closeInventory()
             opener.sendLang("vaults-admin-input-name")
             opener.nextChat {
-                sync {
-                    val result = vault.rename(it)
-                    when (result.reason) {
-                        "vault_name_invalid" -> opener.sendLang("vaults-admin-reset-name-invalid")
-                        "vault_already_exists" -> opener.sendLang("vaults-admin-reset-name-existed")
-                        "vault_name_color" -> opener.sendLang("vaults-admin-reset-name-color")
-                        "vault_name_length" -> opener.sendLang("vaults-admin-reset-name-length")
-                        null -> {
-                            opener.sendLang("vaults-admin-reset-name-succeed")
-                            opener.closeInventory()
-                            root?.open()
-                        }
+                val result = vault.rename(it)
+                when (result.reason) {
+                    "vault_name_invalid" -> opener.sendLang("vaults-admin-reset-name-invalid")
+                    "vault_already_exists" -> opener.sendLang("vaults-admin-reset-name-existed")
+                    "vault_name_color" -> opener.sendLang("vaults-admin-reset-name-color")
+                    "vault_name_length" -> opener.sendLang("vaults-admin-reset-name-length")
+                    null -> {
+                        opener.sendLang("vaults-admin-reset-name-succeed")
+                        opener.closeInventory()
+                        root?.open()
                     }
                 }
             }
@@ -94,22 +93,20 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
             opener.closeInventory()
             opener.sendLang("vaults-admin-input-desc")
             opener.nextChat {
-                sync {
-                    vault.desc = it
-                    vault.updatedAt = System.currentTimeMillis()
+                vault.desc = it
+                vault.updatedAt = System.currentTimeMillis()
 
-                    val table = com.faithl.zephyrion.storage.DatabaseConfig.vaultsTable
-                    val dataSource = com.faithl.zephyrion.storage.DatabaseConfig.dataSource
-                    table.update(dataSource) {
-                        set("description", vault.desc)
-                        set("updated_at", vault.updatedAt)
-                        where { "id" eq vault.id }
-                    }
-
-                    opener.sendLang("vaults-admin-reset-desc-succeed")
-                    opener.closeInventory()
-                    root?.open()
+                val table = com.faithl.zephyrion.storage.DatabaseConfig.vaultsTable
+                val dataSource = com.faithl.zephyrion.storage.DatabaseConfig.dataSource
+                table.update(dataSource) {
+                    set("description", vault.desc)
+                    set("updated_at", vault.updatedAt)
+                    where { "id" eq vault.id }
                 }
+
+                opener.sendLang("vaults-admin-reset-desc-succeed")
+                opener.closeInventory()
+                root?.open()
             }
         }
     }
@@ -133,8 +130,7 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
             }
         }
         menu.onClick('R') {
-            opener.closeInventory()
-            root?.open()
+            root?.open() ?: it.clicker.closeInventory()
         }
     }
 
@@ -191,9 +187,7 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
                 } else {
                     opener.sendLang("vaults-admin-delete-canceled")
                 }
-                sync {
-                    root?.open()
-                }
+                root?.open()
             }
         }
     }

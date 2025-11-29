@@ -344,7 +344,7 @@ auto-pickup-rule-not-pickup-desc:
   - "&7Rule: {0}"
   - "&7Left click to edit"
   - "&7Right click to delete"
-auto-pickup-input-rule: "&b[Zephyrion] Please enter rule"
+auto-pickup-input-rule: "&b[Zephyrion] Please enter rule, type &c&lcancel &bto cancel"
 auto-pickup-input-rule-help:
   - "&aSupported rule formats:"
   - "&7type:DIAMOND &f- Match material type"
@@ -353,6 +353,7 @@ auto-pickup-input-rule-help:
   - "&7regex:.*Diamond.* &f- Regex match name"
   - "&7regex-lore:.*Legend.* &f- Regex match lore"
   - "&7Diamond &f- Default match item name"
+auto-pickup-input-canceled: "&b[Zephyrion] &cCanceled"
 auto-pickup-create-succeed: "&b[Zephyrion] &aRule added successfully"
 auto-pickup-create-failed-empty: "&b[Zephyrion] &cRule cannot be empty"
 auto-pickup-create-failed-exists: "&b[Zephyrion] &cRule already exists"
@@ -366,3 +367,47 @@ auto-pickup-clear-canceled: "&b[Zephyrion] &cCanceled"
 auto-pickup-item-picked: "&b[Zephyrion] &aItem {0} automatically stored in vault: {1}"
 auto-pickup-no-permission: "&b[Zephyrion] &cYou do not have permission to use auto pickup"
 auto-pickup-no-space: "&b[Zephyrion] &cVault is full, cannot auto pickup"
+
+# Add rule by placing item
+auto-pickup-add-by-item: "&aAdd by Item"
+auto-pickup-add-by-item-desc:
+  - "&7Place an item in the slot"
+  - "&7to quickly add a rule"
+  - "&eRecommended"
+auto-pickup-add-title: "&bAdd Auto Pickup Rule"
+auto-pickup-add-item-slot: "&bItem Slot"
+auto-pickup-add-item-slot-desc:
+  - "&7Place an item here"
+  - "&7Then select rule type"
+auto-pickup-add-type-pickup: "&aPickup Rule"
+auto-pickup-add-type-pickup-selected:
+  - "&7Currently selected"
+  - "&aMatching items will be auto picked up"
+auto-pickup-add-type-pickup-unselected:
+  - "&7Click to select this type"
+auto-pickup-add-type-not-pickup: "&cNo Pickup Rule"
+auto-pickup-add-type-not-pickup-selected:
+  - "&7Currently selected"
+  - "&cMatching items will NOT be picked up"
+auto-pickup-add-type-not-pickup-unselected:
+  - "&7Click to select this type"
+auto-pickup-add-by-type: "&6By Material Type"
+auto-pickup-add-by-type-desc:
+  - "&7Match material: &f{0}"
+  - "&7Click to add"
+auto-pickup-add-by-name: "&eBy Item Name"
+auto-pickup-add-by-name-desc:
+  - "&7Match name contains: &f{0}"
+  - "&7Click to add"
+auto-pickup-add-by-exact-name: "&bExact Name Match"
+auto-pickup-add-by-exact-name-desc:
+  - "&7Exact match: &f{0}"
+  - "&7Click to add"
+auto-pickup-add-by-lore: "&dBy Lore Content"
+auto-pickup-add-by-lore-desc:
+  - "&7Match lore contains: &f{0}..."
+  - "&7Click to add"
+auto-pickup-add-no-item: "&b[Zephyrion] &cPlease place an item first"
+auto-pickup-add-no-lore: "&b[Zephyrion] &cItem has no lore"
+auto-pickup-add-return: "&cReturn"
+auto-pickup-create-failed: "&b[Zephyrion] &cFailed to add rule"

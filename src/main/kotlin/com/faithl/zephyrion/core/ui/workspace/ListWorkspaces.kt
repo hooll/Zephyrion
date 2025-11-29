@@ -220,9 +220,7 @@ class ListWorkspaces(override val opener: Player, val targetPlayer: Player? = nu
             opener.sendLang("workspace-main-search-by-${name}-input")
             opener.nextChat {
                 params[name] = it
-                sync {
-                    searchUI.open()
-                }
+                searchUI.open()
             }
         }
     }
@@ -242,19 +240,12 @@ class ListWorkspaces(override val opener: Player, val targetPlayer: Player? = nu
             opener.sendLang("no-permission")
             return
         }
-
-        submitAsync {
-            try {
-                search()
-                sync {
-                    opener.openInventory(build())
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                sync {
-                    opener.sendLang("ui-load-error")
-                }
-            }
+        try {
+            search()
+            opener.openInventory(build())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            opener.sendLang("ui-load-error")
         }
     }
 

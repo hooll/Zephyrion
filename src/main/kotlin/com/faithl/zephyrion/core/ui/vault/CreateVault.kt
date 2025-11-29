@@ -74,10 +74,8 @@ class CreateVault(override val opener: Player, val workspace: Workspace, val roo
             opener.closeInventory()
             opener.sendLang("vaults-create-input-name")
             opener.nextChat {
-                sync {
-                    name = it
-                    open()
-                }
+                name = it
+                open()
             }
         }
     }
@@ -96,10 +94,8 @@ class CreateVault(override val opener: Player, val workspace: Workspace, val roo
             opener.closeInventory()
             opener.sendLang("vaults-create-input-desc")
             opener.nextChat {
-                sync {
-                    description = it
-                    open()
-                }
+                description = it
+                open()
             }
         }
     }

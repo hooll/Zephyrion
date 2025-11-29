@@ -60,9 +60,7 @@ class ListVaults(override val opener: Player, val workspace: Workspace, val root
             opener.sendLang("vaults-main-search-by-${name}-input")
             opener.nextChat {
                 params[name] = it
-                sync {
-                    searchUI.open()
-                }
+                searchUI.open()
             }
         }
     }
@@ -172,8 +170,7 @@ class ListVaults(override val opener: Player, val workspace: Workspace, val root
             }
         }
         menu.onClick(53) {
-            it.clicker.closeInventory()
-            root?.open()
+            root?.open() ?: it.clicker.closeInventory()
         }
     }
 
@@ -193,18 +190,12 @@ class ListVaults(override val opener: Player, val workspace: Workspace, val root
             return
         }
 
-        submitAsync {
-            try {
-                search()
-                sync {
-                    opener.openInventory(build())
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                sync {
-                    opener.sendLang("ui-load-error")
-                }
-            }
+        try {
+            search()
+            opener.openInventory(build())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            opener.sendLang("ui-load-error")
         }
     }
 

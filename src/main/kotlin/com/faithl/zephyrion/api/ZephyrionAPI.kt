@@ -102,19 +102,17 @@ object ZephyrionAPI {
             return Result(false, "workspace_quota_exceeded")
         }
 
-        submitAsync {
-            val table = DatabaseConfig.workspacesTable
-            table.insert(dataSource, "name", "description", "type", "owner", "members", "created_at", "updated_at") {
-                value(
-                    name!!,
-                    desc,
-                    type.name,
-                    owner,
-                    owner,
-                    System.currentTimeMillis(),
-                    System.currentTimeMillis()
-                )
-            }
+        val table = DatabaseConfig.workspacesTable
+        table.insert(dataSource, "name", "description", "type", "owner", "members", "created_at", "updated_at") {
+            value(
+                name!!,
+                desc,
+                type.name,
+                owner,
+                owner,
+                System.currentTimeMillis(),
+                System.currentTimeMillis()
+            )
         }
 
         return Result(true)
@@ -159,17 +157,15 @@ object ZephyrionAPI {
         val table = DatabaseConfig.vaultsTable
         val dataSource = DatabaseConfig.dataSource
 
-        submitAsync {
-            table.insert(dataSource, "name", "description", "workspace_id", "size", "created_at", "updated_at") {
-                value(
-                    name!!,
-                    desc,
-                    workspace.id,
-                    0,
-                    System.currentTimeMillis(),
-                    System.currentTimeMillis()
-                )
-            }
+        table.insert(dataSource, "name", "description", "workspace_id", "size", "created_at", "updated_at") {
+            value(
+                name!!,
+                desc,
+                workspace.id,
+                0,
+                System.currentTimeMillis(),
+                System.currentTimeMillis()
+            )
         }
 
         return Result(true)

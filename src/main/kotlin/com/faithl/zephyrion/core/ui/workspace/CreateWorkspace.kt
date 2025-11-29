@@ -173,10 +173,8 @@ class CreateWorkspace(override val opener: Player, val root: UI) : UI() {
             opener.closeInventory()
             opener.sendLang("workspace-create-input-name")
             opener.nextChat {
-                sync {
-                    name = it
-                    open()
-                }
+                name = it
+                open()
             }
         }
     }
@@ -195,10 +193,8 @@ class CreateWorkspace(override val opener: Player, val root: UI) : UI() {
             opener.closeInventory()
             opener.sendLang("workspace-create-input-desc")
             opener.nextChat {
-                sync {
-                    description = it
-                    open()
-                }
+                description = it
+                open()
             }
         }
     }
