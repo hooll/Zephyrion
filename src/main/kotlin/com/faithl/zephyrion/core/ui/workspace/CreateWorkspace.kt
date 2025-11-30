@@ -22,7 +22,7 @@ import taboolib.platform.util.sendLang
 /**
  * @param opener 打开UI的玩家
  */
-class CreateWorkspace(override val opener: Player, val root: UI) : UI() {
+class CreateWorkspace(override val opener: Player,override val root: UI) : UI() {
 
     var name: String? = null
     var description: String? = null
@@ -41,7 +41,7 @@ class CreateWorkspace(override val opener: Player, val root: UI) : UI() {
         }
     }
 
-    class TypeUI(override val opener: Player, val root: CreateWorkspace) : UI() {
+    class TypeUI(override val opener: Player,override val root: CreateWorkspace) : UI() {
         override fun build(): Inventory {
             return buildMenu<PageableChestImpl<WorkspaceType>>(title()) {
                 rows(1)
@@ -174,7 +174,7 @@ class CreateWorkspace(override val opener: Player, val root: UI) : UI() {
             opener.sendLang("workspace-create-input-name")
             opener.nextChat {
                 name = it
-                open()
+                sync { open() }
             }
         }
     }
@@ -194,19 +194,8 @@ class CreateWorkspace(override val opener: Player, val root: UI) : UI() {
             opener.sendLang("workspace-create-input-desc")
             opener.nextChat {
                 description = it
-                open()
+                sync { open() }
             }
-        }
-    }
-
-    fun setReturnItem(menu: Chest) {
-        menu.set('R') {
-            buildItem(XMaterial.RED_STAINED_GLASS_PANE) {
-                name = opener.asLangText("workspace-create-return")
-            }
-        }
-        menu.onClick('R') {
-            root.open()
         }
     }
 
@@ -240,6 +229,17 @@ class CreateWorkspace(override val opener: Player, val root: UI) : UI() {
                     }
                 }
             }
+        }
+    }
+
+    override fun setReturnItem(menu: Chest) {
+        menu.set('R') {
+            buildItem(XMaterial.RED_STAINED_GLASS_PANE) {
+                name = opener.asLangText("ui-item-name-return")
+            }
+        }
+        menu.onClick('R') {
+            root.open()
         }
     }
 

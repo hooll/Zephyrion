@@ -5,18 +5,16 @@ import com.faithl.zephyrion.api.events.VaultCloseEvent
 import com.faithl.zephyrion.api.events.VaultOpenEvent
 import com.faithl.zephyrion.api.events.VaultSearchCloseEvent
 import com.faithl.zephyrion.api.events.VaultSearchOpenEvent
-import com.faithl.zephyrion.core.models.Vault
 import com.faithl.zephyrion.core.models.Item
+import com.faithl.zephyrion.core.models.Vault
 import com.faithl.zephyrion.core.services.VaultSyncService
 import com.faithl.zephyrion.core.ui.SearchUI
 import com.faithl.zephyrion.core.ui.UI
-import com.faithl.zephyrion.core.ui.search.Search
 import com.faithl.zephyrion.core.ui.search.SearchItem
 import com.faithl.zephyrion.core.ui.setRows6SplitBlock
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import taboolib.common.platform.function.submit
-import taboolib.common.platform.function.submitAsync
 import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
 import taboolib.module.ui.buildMenu
@@ -28,12 +26,8 @@ import taboolib.platform.util.*
 /**
  * owner 打开的玩家
  */
-class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = null, var page: Int = 1) : SearchUI() {
+class VaultUI(override val opener: Player, val vault: Vault, override val root: UI? = null, var page: Int = 1) : SearchUI() {
 
-
-    val searchItems = mutableListOf<SearchItem>()
-    override val params = mutableMapOf<String, String>()
-    val searchUI = Search(opener, searchItems, this)
 
     // 搜索模式相关字段
     var searchResults: List<Item> = emptyList()
@@ -43,11 +37,6 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
         addSearchItems("name")
         addSearchItems("lore")
     }
-
-    /**
-     * 判断是否处于搜索模式
-     */
-    fun isSearchMode(): Boolean = params.isNotEmpty()
 
     /**
      * 获取搜索结果的最大页数
@@ -101,7 +90,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
     }
 
     override fun build(): Inventory {
-        return if (isSearchMode()) {
+        return if (isSearching) {
             buildSearchMode()
         } else {
             buildNormalMode()
@@ -433,7 +422,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
                                     )
                                 }
                             }
-                            open()
+                            sync { open() }
                         }
                     }
                 }
@@ -476,16 +465,6 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
         }
     }
 
-    fun setSearchItem(menu: StorableChest) {
-        menu.set(49) {
-            buildItem(XMaterial.COMPASS) {
-                name = opener.asLangText("vault-main-search")
-            }
-        }
-        menu.onClick(49) { event ->
-            searchUI.open()
-        }
-    }
 
     fun addSearchItems(name: String) {
         searchItems += SearchItem(
@@ -496,7 +475,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
             player.sendLang("vault-main-search-by-${name}-input")
             player.nextChat { input ->
                 params[name] = input
-                searchUI.open()
+                sync { searchUI.open() }
             }
         }
     }
@@ -538,7 +517,7 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
         val inv = build()
         opener.openInventory(inv)
 
-        if (isSearchMode()) {
+        if (isSearching) {
             VaultSearchOpenEvent(vault, params.toMap(), inv, opener).call()
         } else {
             VaultOpenEvent(vault, page, inv, opener).call()
@@ -557,7 +536,6 @@ class VaultUI(override val opener: Player, val vault: Vault, val root: UI? = nul
         if (params.isEmpty()) return
         searchResults = ZephyrionAPI.searchItems(vault, params, opener)
         searchPage = 1
-        open()
     }
 
     companion object {

@@ -6,7 +6,6 @@ import com.faithl.zephyrion.storage.DatabaseConfig
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import taboolib.common.platform.function.submitAsync
 
 object ZephyrionAPI {
 

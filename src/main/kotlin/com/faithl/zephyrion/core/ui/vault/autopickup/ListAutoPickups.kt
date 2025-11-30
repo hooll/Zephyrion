@@ -6,29 +6,21 @@ import com.faithl.zephyrion.core.models.AutoPickupType
 import com.faithl.zephyrion.core.models.Vault
 import com.faithl.zephyrion.core.ui.SearchUI
 import com.faithl.zephyrion.core.ui.UI
-import com.faithl.zephyrion.core.ui.search.Search
 import com.faithl.zephyrion.core.ui.search.SearchItem
 import com.faithl.zephyrion.core.ui.setLinkedMenuProperties
 import com.faithl.zephyrion.core.ui.setRows6SplitBlock
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
+import taboolib.common.util.sync
 import taboolib.library.xseries.XMaterial
 import taboolib.module.ui.buildMenu
 import taboolib.module.ui.type.PageableChest
 import taboolib.module.ui.type.impl.PageableChestImpl
-import taboolib.platform.util.asLangText
-import taboolib.platform.util.asLangTextList
-import taboolib.platform.util.buildItem
-import taboolib.platform.util.nextChat
-import taboolib.platform.util.sendLang
-import kotlin.collections.plusAssign
+import taboolib.platform.util.*
 
-class ListAutoPickups(override val opener: Player, val vault: Vault, val root: UI? = null) : SearchUI() {
+class ListAutoPickups(override val opener: Player, val vault: Vault, override val root: UI? = null) : SearchUI() {
 
     val rules = mutableListOf<AutoPickup>()
-    val searchItems = mutableListOf<SearchItem>()
-    override val params = mutableMapOf<String, String>()
-    val searchUI = Search(opener, searchItems, this)
 
     init {
         addSearchItems("value")
@@ -66,7 +58,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
             opener.sendLang("auto-pickup-search-by-${name}-input")
             opener.nextChat {
                 params[name] = it
-                searchUI.open()
+                sync{ searchUI.open() }
             }
         }
     }
@@ -109,7 +101,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
                 opener.nextChat {
                     if (it.equals("cancel", ignoreCase = true)) {
                         opener.sendLang("auto-pickup-input-canceled")
-                        open()
+                        sync { open() }
                         return@nextChat
                     }
                     val result = ZephyrionAPI.updateAutoPickup(element, it)
@@ -121,7 +113,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
                             else -> opener.sendLang("auto-pickup-update-failed")
                         }
                     }
-                    open()
+                    sync { open() }
                 }
             } else if (event.clickEvent().isRightClick) {
                 if (ZephyrionAPI.deleteAutoPickup(element)) {
@@ -160,7 +152,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
             opener.nextChat {
                 if (it.equals("cancel", ignoreCase = true)) {
                     opener.sendLang("auto-pickup-input-canceled")
-                    open()
+                    sync { open() }
                     return@nextChat
                 }
                 val ruleType = if (event.clickEvent().isLeftClick) {
@@ -177,7 +169,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
                         "auto_pickup_already_exists" -> opener.sendLang("auto-pickup-create-failed-exists")
                     }
                 }
-                open()
+                sync { open() }
             }
         }
     }
@@ -212,7 +204,7 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
                 } else {
                     opener.sendLang("auto-pickup-clear-canceled")
                 }
-                open()
+                sync { open() }
             }
         }
     }
@@ -242,27 +234,6 @@ class ListAutoPickups(override val opener: Player, val vault: Vault, val root: U
         }
     }
 
-    fun setSearchItem(menu: PageableChest<AutoPickup>) {
-        menu.set(49) {
-            buildItem(XMaterial.COMPASS) {
-                name = opener.asLangText("auto-pickup-search")
-            }
-        }
-        menu.onClick(49) {
-            searchUI.open()
-        }
-    }
-
-    fun setReturnItem(menu: PageableChest<AutoPickup>) {
-        menu.set(53) {
-            buildItem(XMaterial.RED_STAINED_GLASS_PANE) {
-                name = opener.asLangText("auto-pickup-return")
-            }
-        }
-        menu.onClick(53) {
-            root?.open() ?: it.clicker.closeInventory()
-        }
-    }
 
     override fun open() {
         opener.openInventory(build())

@@ -7,11 +7,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
-import taboolib.common.platform.function.submit
-import taboolib.common.platform.function.submitAsync
-import taboolib.common.util.sync
 import taboolib.module.database.Table
-import taboolib.module.nms.getI18nName
 import taboolib.module.nms.getName
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

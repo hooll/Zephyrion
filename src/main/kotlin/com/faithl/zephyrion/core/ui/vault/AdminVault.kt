@@ -13,7 +13,7 @@ import taboolib.module.ui.type.Chest
 import taboolib.module.ui.type.impl.ChestImpl
 import taboolib.platform.util.*
 
-class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = null) : UI() {
+class AdminVault(override val opener: Player, val vault: Vault, override val root: UI? = null) : UI() {
 
     override fun build(): Inventory {
         return buildMenu<ChestImpl>(title()) {
@@ -75,8 +75,10 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
                     "vault_name_length" -> opener.sendLang("vaults-admin-reset-name-length")
                     null -> {
                         opener.sendLang("vaults-admin-reset-name-succeed")
-                        opener.closeInventory()
-                        root?.open()
+                        sync {
+                            opener.closeInventory()
+                            root?.open()
+                        }
                     }
                 }
             }
@@ -105,8 +107,10 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
                 }
 
                 opener.sendLang("vaults-admin-reset-desc-succeed")
-                opener.closeInventory()
-                root?.open()
+                sync {
+                 opener.closeInventory()
+                 root?.open()
+                }
             }
         }
     }
@@ -123,17 +127,6 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
         }
     }
 
-    fun setReturnItem(menu: Chest) {
-        menu.set('R') {
-            buildItem(XMaterial.RED_STAINED_GLASS_PANE) {
-                name = opener.asLangText("vaults-admin-return")
-            }
-        }
-        menu.onClick('R') {
-            root?.open() ?: it.clicker.closeInventory()
-        }
-    }
-
     fun setDeleteItem(menu: Chest) {
         menu.set('E') {
             buildItem(XMaterial.BARRIER) {
@@ -145,7 +138,6 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
             opener.sendLang("vaults-admin-delete-tip")
             opener.nextChat {
                 if (it == "Y") {
-                    // Delete all related data: items, settings, auto_pickups, and vault itself
                     val itemsTable = com.faithl.zephyrion.storage.DatabaseConfig.itemsTable
                     val settingsTable = com.faithl.zephyrion.storage.DatabaseConfig.settingsTable
                     val autoPickupsTable = com.faithl.zephyrion.storage.DatabaseConfig.autoPickupsTable
@@ -153,31 +145,25 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
                     val quotasTable = com.faithl.zephyrion.storage.DatabaseConfig.quotasTable
                     val dataSource = com.faithl.zephyrion.storage.DatabaseConfig.dataSource
 
-                    // Update user quota
                     val user = com.faithl.zephyrion.api.ZephyrionAPI.getUserData(vault.workspace.owner)
                     user.sizeUsed -= vault.size
 
-                    // Delete items
                     itemsTable.delete(dataSource) {
                         where { "vault_id" eq vault.id }
                     }
 
-                    // Delete settings
                     settingsTable.delete(dataSource) {
                         where { "vault_id" eq vault.id }
                     }
 
-                    // Delete auto pickups
                     autoPickupsTable.delete(dataSource) {
                         where { "vault_id" eq vault.id }
                     }
 
-                    // Delete vault
                     vaultsTable.delete(dataSource) {
                         where { "id" eq vault.id }
                     }
 
-                    // Update quota
                     quotasTable.update(dataSource) {
                         set("size_used", user.sizeUsed)
                         where { "player" eq vault.workspace.owner }
@@ -187,8 +173,20 @@ class AdminVault(override val opener: Player, val vault: Vault, val root: UI? = 
                 } else {
                     opener.sendLang("vaults-admin-delete-canceled")
                 }
-                root?.open()
+                sync { root?.open() }
             }
+        }
+    }
+
+    override fun setReturnItem(menu: Chest) {
+        menu.set('R') {
+            buildItem(XMaterial.BARRIER) {
+                name = opener.asLangText("ui-item-name-return")
+            }
+        }
+        menu.onClick('R') {
+            it.clicker.closeInventory()
+            root?.open()
         }
     }
 

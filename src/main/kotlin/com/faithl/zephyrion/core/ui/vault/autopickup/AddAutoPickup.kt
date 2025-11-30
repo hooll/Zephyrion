@@ -12,13 +12,10 @@ import taboolib.library.xseries.XMaterial
 import taboolib.module.nms.getName
 import taboolib.module.ui.buildMenu
 import taboolib.module.ui.returnItems
+import taboolib.module.ui.type.Chest
 import taboolib.module.ui.type.StorableChest
 import taboolib.module.ui.type.impl.StorableChestImpl
-import taboolib.platform.util.asLangText
-import taboolib.platform.util.asLangTextList
-import taboolib.platform.util.buildItem
-import taboolib.platform.util.isAir
-import taboolib.platform.util.sendLang
+import taboolib.platform.util.*
 
 /**
  * 添加自动拾取规则的 UI
@@ -27,17 +24,11 @@ import taboolib.platform.util.sendLang
 class AddAutoPickup(
     override val opener: Player,
     val vault: Vault,
-    val root: UI? = null
+    override val root: UI? = null
 ) : UI() {
 
     // 当前选择的规则类型
     var selectedType: AutoPickupType = AutoPickupType.ITEM_PICKUP
-
-    // 槽位（根据map布局计算）
-    // ####I####  -> I=4
-    // #P#####N#  -> P=10, N=16
-    // #T#L#M#R#  -> T=19, L=21, M=23, R=25
-    // ####B####  -> B=31
 
     override fun build(): Inventory {
         return buildMenu<StorableChestImpl>(title()) {
@@ -211,10 +202,10 @@ class AddAutoPickup(
         }
     }
 
-    private fun setReturnItem(menu: StorableChest) {
+    override fun setReturnItem(menu: Chest) {
         menu.set('B') {
             buildItem(XMaterial.RED_STAINED_GLASS_PANE) {
-                name = opener.asLangText("auto-pickup-add-return")
+                name = opener.asLangText("ui-item-name-return")
             }
         }
         menu.onClick('B') {

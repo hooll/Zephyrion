@@ -12,7 +12,7 @@ import taboolib.module.ui.type.Chest
 import taboolib.module.ui.type.impl.ChestImpl
 import taboolib.platform.util.*
 
-class AdminWorkspace(override val opener: Player, val workspace: Workspace, val root: UI) : UI() {
+class AdminWorkspace(override val opener: Player, val workspace: Workspace,override val root: UI) : UI() {
 
     override fun build(): Inventory {
         return buildMenu<ChestImpl>(title()) {
@@ -90,7 +90,7 @@ class AdminWorkspace(override val opener: Player, val workspace: Workspace, val 
                         opener.sendLang("workspace-admin-reset-name-succeed")
                     }
                 }
-                open()
+                sync { open() }
             }
         }
     }
@@ -101,7 +101,7 @@ class AdminWorkspace(override val opener: Player, val workspace: Workspace, val 
                 name = opener.asLangText("workspace-admin-reset-desc")
             }
         }
-        menu.onClick('C') { event ->
+        menu.onClick('D') { event ->
             opener.closeInventory()
             opener.sendLang("workspace-admin-input-desc")
             opener.nextChat {
@@ -117,7 +117,7 @@ class AdminWorkspace(override val opener: Player, val workspace: Workspace, val 
                 }
 
                 opener.sendLang("workspace-admin-reset-desc-succeed")
-                open()
+                sync { open() }
             }
         }
     }
@@ -146,19 +146,18 @@ class AdminWorkspace(override val opener: Player, val workspace: Workspace, val 
                 if (it == "Y") {
                     workspace.delete()
                     opener.sendLang("workspace-admin-delete-succeed")
-                    root.open()
                 } else {
                     opener.sendLang("workspace-admin-delete-canceled")
-                    root.open()
                 }
+                sync { root.open() }
             }
         }
     }
 
-    fun setReturnItem(menu: Chest) {
+    override fun setReturnItem(menu: Chest) {
         menu.set('R') {
             buildItem(XMaterial.RED_STAINED_GLASS_PANE) {
-                name = opener.asLangText("workspace-admin-return")
+                name = opener.asLangText("ui-item-name-return")
             }
         }
         menu.onClick('R') {
