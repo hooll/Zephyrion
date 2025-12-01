@@ -382,8 +382,9 @@ auto-pickup-create-failed: "&b[Zephyrion] &cFailed to add rule"
 auto-replace-tool-replaced: "&b[Zephyrion] &aTool auto replaced: {0} (from vault: {1})"
 auto-replace-tool-no-replacement: "&b[Zephyrion] &cNo replacement tool found: {0}"
 
-# Set durability command (for testing)
-setdurability-no-item: "&b[Zephyrion] &cNo item in hand"
-setdurability-not-damageable: "&b[Zephyrion] &cThis item does not support durability"
-setdurability-invalid-value: "&b[Zephyrion] &cPlease enter a valid durability value (non-negative integer)"
-setdurability-success: "&b[Zephyrion] &aDurability set to {0}/{1}"
+# Cache related
+cache-type-not-set: "&b[Zephyrion] &eCache type not set, using memory cache by default"
+cache-type-unsupported: "&b[Zephyrion] &cUnsupported cache type: {0}, falling back to memory cache"
+cache-initialized: "&b[Zephyrion] &aCache initialized with type: {0}"
+cache-redis-config-not-found: "&b[Zephyrion] &cRedis cache configuration not found, falling back to memory cache"
+cache-redis-init-failed: "&b[Zephyrion] &cFailed to initialize Redis cache: {0}, falling back to memory cache"
