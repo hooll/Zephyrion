@@ -3,6 +3,7 @@ package com.faithl.zephyrion.core.models
 import com.faithl.zephyrion.api.events.VaultAddItemEvent
 import com.faithl.zephyrion.api.events.VaultRemoveItemEvent
 import com.faithl.zephyrion.storage.DatabaseConfig
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.util.io.BukkitObjectInputStream
@@ -240,6 +241,45 @@ data class Item(
                 }
             }
             VaultRemoveItemEvent(vault, page, slot, player).call()
+        }
+
+        /**
+         * 获取保险库中匹配指定材料类型的物品，按slot位置排序
+         */
+        fun getItemsByMaterials(vault: Vault, materials: Set<Material>, player: Player? = null): List<Item> {
+            val items = if (vault.workspace.type == WorkspaceType.INDEPENDENT && player != null) {
+                table.select(dataSource) {
+                    where {
+                        "vault_id" eq vault.id
+                        and { "owner" eq player.uniqueId.toString() }
+                    }
+                }.map {
+                    Item(
+                        id = getInt("id"),
+                        vaultId = getInt("vault_id"),
+                        page = getInt("page"),
+                        owner = getString("owner"),
+                        slot = getInt("slot"),
+                        itemStackSerialized = getString("item_stack")
+                    )
+                }
+            } else {
+                table.select(dataSource) {
+                    where { "vault_id" eq vault.id }
+                }.map {
+                    Item(
+                        id = getInt("id"),
+                        vaultId = getInt("vault_id"),
+                        page = getInt("page"),
+                        owner = getString("owner"),
+                        slot = getInt("slot"),
+                        itemStackSerialized = getString("item_stack")
+                    )
+                }
+            }
+
+            return items.filter { materials.contains(it.itemStack.type) }
+                .sortedWith(compareBy({ it.page }, { it.slot }))
         }
 
         private fun toBase64(itemStack: ItemStack): String {
