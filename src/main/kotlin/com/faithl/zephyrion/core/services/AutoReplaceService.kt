@@ -77,7 +77,7 @@ object AutoReplaceService {
         val brokenItem = event.brokenItem
         val brokenMaterial = brokenItem.type
 
-        val permission = Zephyrion.permissions.getString("auto-replace-tool") ?: "zephyrion.auto-replace-tool"
+        val permission = Zephyrion.permissions.getString("vault.setting.auto-replace") ?: "zephyrion.vault.setting.auto-replace"
         if (!player.hasPermission(permission) && !ZephyrionAPI.isPluginAdmin(player)) {
             return
         }

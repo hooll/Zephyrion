@@ -45,7 +45,7 @@ object AutoPickupService {
         val player = event.entity as Player
         val itemStack = event.item.itemStack
 
-        val permission = Zephyrion.permissions.getString("auto-pick-items") ?: "zephyrion.auto-pick-items"
+        val permission = Zephyrion.permissions.getString("vault.setting.auto-pick") ?: "zephyrion.vault.setting.auto-pick"
         if (!player.hasPermission(permission) && !ZephyrionAPI.isPluginAdmin(player)) {
             return
         }
